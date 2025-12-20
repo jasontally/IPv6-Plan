@@ -311,19 +311,6 @@
             
             <label>Prefix:</label>
             <select id="prefixSelect">
-                <option value="16">/16</option>
-                <option value="20" selected>/20</option>
-                <option value="24">/24</option>
-                <option value="28">/28</option>
-                <option value="32">/32</option>
-                <option value="36">/36</option>
-                <option value="40">/40</option>
-                <option value="44">/44</option>
-                <option value="48">/48</option>
-                <option value="52">/52</option>
-                <option value="56">/56</option>
-                <option value="60">/60</option>
-                <option value="64">/64</option>
             </select>
             
             <button onclick="loadNetwork()">Go</button>
@@ -514,19 +501,25 @@
             return result;
         }
 
-        // Get child subnet at given index (0-15)
+        // Get child subnet at given index
         function getChildSubnet(bytes, prefix, index) {
             const result = new Uint8Array(bytes);
-            const byteIndex = Math.floor(prefix / 8);
-            const nibblePos = prefix % 8;
+            const bitPos = prefix;
+            const byteIndex = Math.floor(bitPos / 8);
+            const bitOffset = bitPos % 8;
             
-            if (nibblePos === 0) {
-                // High nibble
-                result[byteIndex] = (result[byteIndex] & 0x0F) | (index << 4);
-            } else {
-                // Low nibble
-                result[byteIndex] = (result[byteIndex] & 0xF0) | index;
-            }
+            // Calculate how many bits we're incrementing
+            const nextNibble = Math.ceil(prefix / 4) * 4;
+            const bitsToIncrement = nextNibble - prefix;
+            
+            // Shift index to the correct position
+            const shiftedIndex = index << (8 - bitOffset - bitsToIncrement);
+            
+            // Create mask to preserve existing bits
+            const mask = (0xFF << (8 - bitOffset)) & 0xFF;
+            
+            // Apply the index
+            result[byteIndex] = (result[byteIndex] & mask) | (shiftedIndex & ~mask);
             
             return result;
         }
@@ -578,7 +571,7 @@
             return keys.length > 0;
         }
 
-        // Split subnet into 16 children
+        // Split subnet into children at next nibble boundary
         function splitSubnet(cidr) {
             const [addr, prefix] = cidr.split('/');
             const prefixNum = parseInt(prefix);
@@ -586,13 +579,19 @@
             if (prefixNum >= 64) return; // Cannot split /64
             
             const bytes = parseIPv6(addr);
-            const newPrefix = prefixNum + 4;
+            
+            // Calculate next nibble boundary
+            const nextNibble = Math.ceil(prefixNum / 4) * 4;
+            const bitsToNextNibble = nextNibble - prefixNum;
+            const numChildren = Math.pow(2, bitsToNextNibble);
+            
             const node = getSubnetNode(cidr);
             
-            for (let i = 0; i < 16; i++) {
+            // Generate children at the next nibble boundary
+            for (let i = 0; i < numChildren; i++) {
                 const childBytes = getChildSubnet(bytes, prefixNum, i);
                 const childAddr = formatIPv6(childBytes);
-                const childCidr = `${childAddr}/${newPrefix}`;
+                const childCidr = `${childAddr}/${nextNibble}`;
                 node[childCidr] = { _note: '', _color: '' };
             }
             
@@ -743,7 +742,10 @@
                 splitTd.className = 'button-cell';
                 const splitBtn = document.createElement('button');
                 splitBtn.className = 'split-button';
-                splitBtn.textContent = `/${row.prefix}`;
+                const nextNibble = Math.ceil(row.prefix / 4) * 4;
+                const numChildren = Math.pow(2, nextNibble - row.prefix);
+                splitBtn.textContent = row.prefix === nextNibble ? `/${row.prefix}` : `→/${nextNibble}`;
+                splitBtn.title = row.prefix === nextNibble ? `Split into 16 /${nextNibble + 4} subnets` : `Split into ${numChildren} /${nextNibble} subnets`;
                 splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
                 splitBtn.addEventListener('click', () => splitSubnet(row.cidr));
                 splitTd.appendChild(splitBtn);
@@ -915,8 +917,8 @@
                 return;
             }
             
-            if (prefix < 16 || prefix > 64 || prefix % 4 !== 0) {
-                errorDiv.textContent = 'Prefix must be between /16 and /64 in multiples of 4';
+            if (prefix < 16 || prefix > 64) {
+                errorDiv.textContent = 'Prefix must be between /16 and /64';
                 return;
             }
             
@@ -1009,6 +1011,16 @@
 
         // Initialize
         window.addEventListener('load', () => {
+            // Populate prefix dropdown
+            const select = document.getElementById('prefixSelect');
+            for (let i = 16; i <= 64; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `/${i}`;
+                if (i === 20) option.selected = true;
+                select.appendChild(option);
+            }
+            
             if (!loadState()) {
                 // Load default
                 loadNetwork();

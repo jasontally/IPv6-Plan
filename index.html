@@ -505,8 +505,8 @@
         function getChildSubnet(bytes, prefix, index) {
             const result = new Uint8Array(bytes);
             
-            // Calculate the target prefix (next nibble boundary)
-            const nextNibble = Math.ceil(prefix / 4) * 4;
+            const isAligned = (prefix % 4) === 0;
+            const nextNibble = isAligned ? prefix + 4 : Math.ceil(prefix / 4) * 4;
             const bitsToAdd = nextNibble - prefix;
             
             // Convert index to a value we can add to the address
@@ -586,7 +586,9 @@
             const bytes = parseIPv6(addr);
             
             // Calculate next nibble boundary
-            const nextNibble = Math.ceil(prefixNum / 4) * 4;
+            // If already on a nibble boundary, go to the next one (+4)
+            const isAligned = (prefixNum % 4) === 0;
+            const nextNibble = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
             const bitsToNextNibble = nextNibble - prefixNum;
             const numChildren = Math.pow(2, bitsToNextNibble);
             
@@ -747,10 +749,11 @@
                 splitTd.className = 'button-cell';
                 const splitBtn = document.createElement('button');
                 splitBtn.className = 'split-button';
-                const nextNibble = Math.ceil(row.prefix / 4) * 4;
+                const isAligned = (row.prefix % 4) === 0;
+                const nextNibble = isAligned ? row.prefix + 4 : Math.ceil(row.prefix / 4) * 4;
                 const numChildren = Math.pow(2, nextNibble - row.prefix);
-                splitBtn.textContent = row.prefix === nextNibble ? `/${row.prefix}` : `→/${nextNibble}`;
-                splitBtn.title = row.prefix === nextNibble ? `Split into 16 /${nextNibble + 4} subnets` : `Split into ${numChildren} /${nextNibble} subnets`;
+                splitBtn.textContent = isAligned ? `/${row.prefix}` : `→/${nextNibble}`;
+                splitBtn.title = `Split into ${numChildren} /${nextNibble} subnets`;
                 splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
                 splitBtn.addEventListener('click', () => splitSubnet(row.cidr));
                 splitTd.appendChild(splitBtn);

@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPv6 Subnet Planner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .input-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group label {
+            font-weight: 500;
+        }
+
+        .input-group input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .input-group select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .input-group button {
+            padding: 8px 20px;
+            background: #7C3AED;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .input-group button:hover {
+            background: #6D28D9;
+        }
+
+        .share-button {
+            margin-left: auto;
+            background: #0891B2 !important;
+        }
+
+        .share-button:hover {
+            background: #0E7490 !important;
+        }
+
+        .doc-button {
+            background: #64748B !important;
+            font-size: 13px !important;
+            padding: 6px 12px !important;
+        }
+
+        .doc-button:hover {
+            background: #475569 !important;
+        }
+
+        .error {
+            color: #d32f2f;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .subnet-table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f0f0f0;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .subnet-cell {
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .contains-cell {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .note-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .note-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .split-button {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 600;
+            min-width: 50px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 60px;
+        }
+
+        .split-button:hover:not(:disabled) {
+            background: #047857;
+        }
+
+        .split-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .join-button {
+            background: #DC2626;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 100%;
+            display: block;
+            margin: 0 2px;
+        }
+
+        .join-button:hover {
+            background: #B91C1C;
+        }
+
+        .color-picker {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .color-picker.show {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            cursor: pointer;
+        }
+
+        .color-option:hover {
+            border-color: #666;
+        }
+
+        .color-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            background: white;
+        }
+
+        .color-button:hover {
+            border-color: #999;
+        }
+
+        tr.colored {
+            background-color: var(--row-color);
+        }
+
+        .button-cell {
+            padding: 2px !important;
+            text-align: center;
+            vertical-align: middle;
+            height: 100%;
+        }
+        
+        .button-cell[rowspan] {
+            padding: 0 2px !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .footer h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .footer p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .footer a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-section {
+            margin-bottom: 30px;
+        }
+
+        .footer-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .footer ul {
+            margin: 10px 0 10px 20px;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .footer li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>IPv6 Subnet Planner</h1>
+    
+    <div class="input-form">
+        <div class="input-group">
+            <label>Network:</label>
+            <input type="text" id="networkInput" value="3fff::" placeholder="Enter IPv6 address">
+            
+            <label>Prefix:</label>
+            <select id="prefixSelect">
+                <option value="16">/16</option>
+                <option value="20" selected>/20</option>
+                <option value="24">/24</option>
+                <option value="28">/28</option>
+                <option value="32">/32</option>
+                <option value="36">/36</option>
+                <option value="40">/40</option>
+                <option value="44">/44</option>
+                <option value="48">/48</option>
+                <option value="52">/52</option>
+                <option value="56">/56</option>
+                <option value="60">/60</option>
+                <option value="64">/64</option>
+            </select>
+            
+            <button onclick="loadNetwork()">Go</button>
+            <button class="share-button" onclick="shareURL()">Share</button>
+            <button class="share-button" onclick="exportCSV()">Export CSV</button>
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+            <label>Quick Load:</label>
+            <button class="doc-button" onclick="loadDocPrefix('3fff::', 20)">3fff::/20 (RFC 9637)</button>
+            <button class="doc-button" onclick="loadDocPrefix('2001:db8::', 32)">2001:db8::/32 (RFC 3849)</button>
+        </div>
+        <div id="error" class="error"></div>
+    </div>
+
+    <div class="subnet-table-container">
+        <table id="subnetTable">
+            <thead>
+                <tr>
+                    <th>Subnet</th>
+                    <th>Contains</th>
+                    <th style="width: 40%;">Note</th>
+                    <th>Color</th>
+                    <th colspan="10">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="14" class="empty-state">Enter a network address and click Go to start planning</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <div class="footer-section">
+            <h2>About This Tool</h2>
+            <p>Hierarchically divide IPv6 address space for network planning and documentation.</p>
+            
+            <p><strong>Key Features:</strong></p>
+            <ul>
+                <li><strong>Nibble-Aligned Splitting:</strong> Splits at 4-bit boundaries (/20, /24, /28, etc.), creating 16 child subnets per split.</li>
+                <li><strong>Prefix Range:</strong> /16 to /64, with /64 as the minimum assignable subnet.</li>
+                <li><strong>Location-Based Planning:</strong> Shows count of /48s (typical site/location size) for prefixes &lt; /48, and /64s (minimum subnet size) for prefixes ≥ /48.</li>
+                <li><strong>Visual Hierarchy:</strong> Split and Join buttons span multiple rows to show parent-child relationships.</li>
+                <li><strong>Annotations:</strong> Add notes and color-code subnets for documentation.</li>
+                <li><strong>Shareable URLs:</strong> Complete state encoded in URL for easy sharing.</li>
+            </ul>
+        </div>
+
+        <div class="footer-section">
+            <p>This tool was made by <a href="https://JasonTally.com" target="_blank">Jason Tally</a> with the help of <a href="https://opencode.ai/" target="_blank">opencode.ai</a> and Claude.</p>
+        </div>
+
+        <div class="footer-section">
+            <h2>Credits</h2>
+            <p>This IPv6 Subnet Planner was inspired by:</p>
+            <ul>
+                <li><a href="https://www.caesarkabalan.com/" target="_blank">Caesar Kabalan's</a> <a href="https://visualsubnetcalc.com/" target="_blank">IPv4 Visual Subnet Calculator</a></li>
+                <li><a href="https://www.davidc.net/" target="_blank">davidc's</a> <a href="https://www.davidc.net/sites/default/subnets/subnets.html" target="_blank">original IPv4 subnet calculator</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let rootNetwork = null;
+        let rootPrefix = null;
+        let subnetTree = {};
+
+        // Color palette
+        const COLORS = [
+            '#FFE5E5', // Soft Pink
+            '#E5F3FF', // Sky Blue
+            '#E5FFE5', // Mint Green
+            '#FFF5E5', // Peach
+            '#F5E5FF', // Lavender
+            '#E5FFFF', // Cyan
+            '#FFFFE5', // Cream
+            '#FFE5F5', // Rose
+            '#E5F5FF', // Ice Blue
+            '#F5FFE5', // Pale Lime
+            '#FFE5D5', // Apricot
+            '#E5E5FF', // Periwinkle
+            '#FFEED5', // Sand
+            '#D5FFE5', // Seafoam
+            '#FFD5E5', // Blush
+            '#E5FFED', // Aqua Mint
+        ];
+
+        // Parse IPv6 address to 16-byte array
+        function parseIPv6(addr) {
+            addr = addr.trim().toLowerCase();
+            
+            // Handle :: expansion
+            if (addr.includes('::')) {
+                const parts = addr.split('::');
+                if (parts.length > 2) return null;
+                
+                const left = parts[0] ? parts[0].split(':') : [];
+                const right = parts[1] ? parts[1].split(':') : [];
+                const missing = 8 - left.length - right.length;
+                
+                const groups = [...left];
+                for (let i = 0; i < missing; i++) groups.push('0');
+                groups.push(...right);
+                
+                const bytes = new Uint8Array(16);
+                for (let i = 0; i < 8; i++) {
+                    const val = parseInt(groups[i] || '0', 16);
+                    if (isNaN(val) || val > 0xFFFF) return null;
+                    bytes[i * 2] = (val >> 8) & 0xFF;
+                    bytes[i * 2 + 1] = val & 0xFF;
+                }
+                return bytes;
+            } else {
+                const groups = addr.split(':');
+                if (groups.length !== 8) return null;
+                
+                const bytes = new Uint8Array(16);
+                for (let i = 0; i < 8; i++) {
+                    const val = parseInt(groups[i], 16);
+                    if (isNaN(val) || val > 0xFFFF) return null;
+                    bytes[i * 2] = (val >> 8) & 0xFF;
+                    bytes[i * 2 + 1] = val & 0xFF;
+                }
+                return bytes;
+            }
+        }
+
+        // Convert byte array to compressed IPv6 string (RFC 5952)
+        function formatIPv6(bytes) {
+            const groups = [];
+            for (let i = 0; i < 8; i++) {
+                groups.push((bytes[i * 2] << 8) | bytes[i * 2 + 1]);
+            }
+            
+            // Find longest run of zeros
+            let maxStart = -1, maxLen = 0;
+            let currStart = -1, currLen = 0;
+            
+            for (let i = 0; i < 8; i++) {
+                if (groups[i] === 0) {
+                    if (currStart === -1) currStart = i;
+                    currLen++;
+                } else {
+                    if (currLen > maxLen) {
+                        maxStart = currStart;
+                        maxLen = currLen;
+                    }
+                    currStart = -1;
+                    currLen = 0;
+                }
+            }
+            if (currLen > maxLen) {
+                maxStart = currStart;
+                maxLen = currLen;
+            }
+            
+            // Build string with compression
+            if (maxLen > 1) {
+                const left = groups.slice(0, maxStart).map(g => g.toString(16)).join(':');
+                const right = groups.slice(maxStart + maxLen).map(g => g.toString(16)).join(':');
+                
+                if (maxStart === 0 && maxStart + maxLen === 8) return '::';
+                if (maxStart === 0) return '::' + right;
+                if (maxStart + maxLen === 8) return left + '::';
+                return left + '::' + right;
+            }
+            
+            return groups.map(g => g.toString(16)).join(':');
+        }
+
+        // Apply prefix mask to get network address
+        function applyPrefix(bytes, prefix) {
+            const result = new Uint8Array(16);
+            const fullBytes = Math.floor(prefix / 8);
+            const remainingBits = prefix % 8;
+            
+            for (let i = 0; i < fullBytes; i++) {
+                result[i] = bytes[i];
+            }
+            
+            if (remainingBits > 0) {
+                const mask = (0xFF << (8 - remainingBits)) & 0xFF;
+                result[fullBytes] = bytes[fullBytes] & mask;
+            }
+            
+            return result;
+        }
+
+        // Get child subnet at given index (0-15)
+        function getChildSubnet(bytes, prefix, index) {
+            const result = new Uint8Array(bytes);
+            const byteIndex = Math.floor(prefix / 8);
+            const nibblePos = prefix % 8;
+            
+            if (nibblePos === 0) {
+                // High nibble
+                result[byteIndex] = (result[byteIndex] & 0x0F) | (index << 4);
+            } else {
+                // Low nibble
+                result[byteIndex] = (result[byteIndex] & 0xF0) | index;
+            }
+            
+            return result;
+        }
+
+        // Calculate subnet counts
+        function getSubnetCount(prefix) {
+            if (prefix >= 48) {
+                // Show /64 count
+                const count = Math.pow(2, 64 - prefix);
+                if (prefix === 64) return 'Host Subnet';
+                return `${count.toLocaleString()} /64s`;
+            } else {
+                // Show /48 count
+                const count = Math.pow(2, 48 - prefix);
+                return `${count.toLocaleString()} /48s`;
+            }
+        }
+
+        // Compare two CIDR addresses numerically
+        function compareCIDR(a, b) {
+            const [addrA] = a.split('/');
+            const [addrB] = b.split('/');
+            
+            const bytesA = parseIPv6(addrA);
+            const bytesB = parseIPv6(addrB);
+            
+            for (let i = 0; i < 16; i++) {
+                if (bytesA[i] !== bytesB[i]) {
+                    return bytesA[i] - bytesB[i];
+                }
+            }
+            return 0;
+        }
+
+        // Get or create subnet node in tree
+        function getSubnetNode(cidr) {
+            if (!subnetTree[cidr]) {
+                subnetTree[cidr] = { _note: '', _color: '' };
+            }
+            return subnetTree[cidr];
+        }
+
+        // Check if subnet is split
+        function isSplit(cidr) {
+            const node = subnetTree[cidr];
+            if (!node) return false;
+            
+            const keys = Object.keys(node).filter(k => !k.startsWith('_'));
+            return keys.length > 0;
+        }
+
+        // Split subnet into 16 children
+        function splitSubnet(cidr) {
+            const [addr, prefix] = cidr.split('/');
+            const prefixNum = parseInt(prefix);
+            
+            if (prefixNum >= 64) return; // Cannot split /64
+            
+            const bytes = parseIPv6(addr);
+            const newPrefix = prefixNum + 4;
+            const node = getSubnetNode(cidr);
+            
+            for (let i = 0; i < 16; i++) {
+                const childBytes = getChildSubnet(bytes, prefixNum, i);
+                const childAddr = formatIPv6(childBytes);
+                const childCidr = `${childAddr}/${newPrefix}`;
+                node[childCidr] = { _note: '', _color: '' };
+            }
+            
+            saveState();
+            render();
+        }
+
+        // Join subnets back to parent
+        function joinSubnet(cidr, targetPrefix) {
+            const [addr, currentPrefix] = cidr.split('/');
+            const currentPrefixNum = parseInt(currentPrefix);
+            
+            // Find parent CIDR
+            let parentCidr = cidr;
+            for (let p = currentPrefixNum - 4; p >= targetPrefix; p -= 4) {
+                const bytes = parseIPv6(addr);
+                const masked = applyPrefix(bytes, p);
+                parentCidr = `${formatIPv6(masked)}/${p}`;
+            }
+            
+            // Remove all children from parent node
+            const node = getSubnetNode(parentCidr);
+            const keys = Object.keys(node).filter(k => !k.startsWith('_'));
+            keys.forEach(k => delete node[k]);
+            
+            saveState();
+            render();
+        }
+
+        // Render table
+        function render() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            if (!rootNetwork) {
+                tbody.innerHTML = '<tr><td colspan="14" class="empty-state">Enter a network address and click Go to start planning</td></tr>';
+                return;
+            }
+            
+            const rootCidr = `${rootNetwork}/${rootPrefix}`;
+            const rows = [];
+            
+            function collectRows(cidr, depth = 0, ancestry = []) {
+                const [addr, prefix] = cidr.split('/');
+                const prefixNum = parseInt(prefix);
+                const node = getSubnetNode(cidr);
+                const children = Object.keys(node).filter(k => !k.startsWith('_'));
+                const isLeaf = children.length === 0;
+                
+                rows.push({
+                    cidr,
+                    depth,
+                    ancestry: [...ancestry],
+                    note: node._note || '',
+                    color: node._color || '',
+                    isLeaf,
+                    prefix: prefixNum
+                });
+                
+                if (!isLeaf) {
+                    children.sort(compareCIDR).forEach(childCidr => {
+                        collectRows(childCidr, depth + 1, [...ancestry, cidr]);
+                    });
+                }
+            }
+            
+            collectRows(rootCidr);
+            
+            // Calculate rowspans for join buttons
+            const rowspans = new Map();
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                
+                for (let level = 0; level < row.ancestry.length; level++) {
+                    const ancestorCidr = row.ancestry[level];
+                    const key = `${ancestorCidr}-${level}`;
+                    
+                    if (!rowspans.has(key)) {
+                        // Find the first child of this ancestor at this level
+                        const firstChildIdx = i;
+                        
+                        // Count all rows that are descendants of this ancestor
+                        // These are rows where ancestry[level] === ancestorCidr
+                        let count = 0;
+                        for (let j = firstChildIdx; j < rows.length; j++) {
+                            // Check if this row is a descendant of the ancestor
+                            if (rows[j].ancestry.length > level && rows[j].ancestry[level] === ancestorCidr) {
+                                count++;
+                            } else if (rows[j].ancestry.length <= level || rows[j].ancestry[level] !== ancestorCidr) {
+                                // We've moved past all descendants of this ancestor
+                                break;
+                            }
+                        }
+                        
+                        rowspans.set(key, { row: firstChildIdx, count });
+                    }
+                }
+            }
+            
+            // Render rows
+            rows.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                if (row.color) {
+                    tr.classList.add('colored');
+                    tr.style.setProperty('--row-color', row.color);
+                }
+                
+                // Subnet column
+                const subnetTd = document.createElement('td');
+                subnetTd.className = 'subnet-cell';
+                subnetTd.textContent = row.cidr;
+                subnetTd.style.paddingLeft = `${row.depth * 20 + 8}px`;
+                tr.appendChild(subnetTd);
+                
+                // Contains column
+                const containsTd = document.createElement('td');
+                containsTd.className = 'contains-cell';
+                containsTd.textContent = getSubnetCount(row.prefix);
+                tr.appendChild(containsTd);
+                
+                // Note column
+                const noteTd = document.createElement('td');
+                const noteInput = document.createElement('input');
+                noteInput.type = 'text';
+                noteInput.className = 'note-input';
+                noteInput.value = row.note;
+                noteInput.addEventListener('change', (e) => {
+                    const node = getSubnetNode(row.cidr);
+                    node._note = e.target.value;
+                    saveState();
+                });
+                noteTd.appendChild(noteInput);
+                tr.appendChild(noteTd);
+                
+                // Color button column
+                const colorTd = document.createElement('td');
+                colorTd.className = 'button-cell';
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'color-button';
+                if (row.color) colorBtn.style.background = row.color;
+                colorBtn.addEventListener('click', () => showColorPicker(row.cidr, colorBtn));
+                colorTd.appendChild(colorBtn);
+                tr.appendChild(colorTd);
+                
+                // Split button column
+                const splitTd = document.createElement('td');
+                splitTd.className = 'button-cell';
+                const splitBtn = document.createElement('button');
+                splitBtn.className = 'split-button';
+                splitBtn.textContent = `/${row.prefix}`;
+                splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
+                splitBtn.addEventListener('click', () => splitSubnet(row.cidr));
+                splitTd.appendChild(splitBtn);
+                tr.appendChild(splitTd);
+                
+                // Join button columns (one per ancestry level)
+                const maxJoinCols = 9;
+                for (let level = 0; level < maxJoinCols; level++) {
+                    if (level < row.ancestry.length) {
+                        const ancestorCidr = row.ancestry[level];
+                        const key = `${ancestorCidr}-${level}`;
+                        const spanInfo = rowspans.get(key);
+                        
+                        if (spanInfo && spanInfo.row === idx) {
+                            const joinTd = document.createElement('td');
+                            joinTd.className = 'button-cell join-cell';
+                            joinTd.rowSpan = spanInfo.count;
+                            joinTd.style.height = '100%';
+                            joinTd.style.padding = '0';
+                            
+                            const [, ancestorPrefix] = ancestorCidr.split('/');
+                            const joinBtn = document.createElement('button');
+                            joinBtn.className = 'join-button';
+                            joinBtn.textContent = `/${ancestorPrefix}`;
+                            joinBtn.addEventListener('click', () => joinSubnet(row.cidr, parseInt(ancestorPrefix)));
+                            joinTd.appendChild(joinBtn);
+                            tr.appendChild(joinTd);
+                        }
+                    } else {
+                        const emptyTd = document.createElement('td');
+                        emptyTd.className = 'button-cell';
+                        tr.appendChild(emptyTd);
+                    }
+                }
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Color picker
+        let currentColorTarget = null;
+        let currentColorButton = null;
+        
+        function showColorPicker(cidr, button) {
+            currentColorTarget = cidr;
+            currentColorButton = button;
+            
+            const picker = document.createElement('div');
+            picker.style.position = 'fixed';
+            picker.style.background = 'white';
+            picker.style.border = '1px solid #ccc';
+            picker.style.borderRadius = '4px';
+            picker.style.padding = '10px';
+            picker.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            picker.style.zIndex = '1000';
+            
+            const rect = button.getBoundingClientRect();
+            picker.style.left = rect.left + 'px';
+            picker.style.top = (rect.bottom + 5) + 'px';
+            
+            // Add clear button
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear';
+            clearBtn.style.marginRight = '10px';
+            clearBtn.addEventListener('click', () => {
+                setColor('');
+                document.body.removeChild(picker);
+            });
+            picker.appendChild(clearBtn);
+            
+            // Add color options
+            COLORS.forEach(color => {
+                const opt = document.createElement('div');
+                opt.className = 'color-option';
+                opt.style.background = color;
+                opt.style.display = 'inline-block';
+                opt.style.margin = '2px';
+                opt.addEventListener('click', () => {
+                    setColor(color);
+                    document.body.removeChild(picker);
+                });
+                picker.appendChild(opt);
+            });
+            
+            document.body.appendChild(picker);
+            
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function closePickerOnOutsideClick(e) {
+                    if (!picker.contains(e.target) && e.target !== button) {
+                        if (document.body.contains(picker)) {
+                            document.body.removeChild(picker);
+                        }
+                        document.removeEventListener('click', closePickerOnOutsideClick);
+                    }
+                }, {once: true});
+            }, 0);
+        }
+        
+        function setColor(color) {
+            const node = getSubnetNode(currentColorTarget);
+            node._color = color;
+            currentColorButton.style.background = color || 'white';
+            saveState();
+            render();
+        }
+
+        // State management
+        function saveState() {
+            if (!rootNetwork) return;
+            
+            const state = {
+                network: rootNetwork,
+                prefix: rootPrefix,
+                tree: subnetTree
+            };
+            
+            const json = JSON.stringify(state);
+            const compressed = btoa(encodeURIComponent(json));
+            window.location.hash = compressed;
+        }
+
+        function loadState() {
+            const hash = window.location.hash.slice(1);
+            if (!hash) return false;
+            
+            try {
+                const json = decodeURIComponent(atob(hash));
+                const state = JSON.parse(json);
+                
+                rootNetwork = state.network;
+                rootPrefix = state.prefix;
+                subnetTree = state.tree;
+                
+                document.getElementById('networkInput').value = rootNetwork;
+                document.getElementById('prefixSelect').value = rootPrefix;
+                
+                render();
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Load documentation prefix
+        function loadDocPrefix(address, prefix) {
+            document.getElementById('networkInput').value = address;
+            document.getElementById('prefixSelect').value = prefix;
+            loadNetwork();
+        }
+
+        // Load network
+        function loadNetwork() {
+            const input = document.getElementById('networkInput').value.trim();
+            const prefix = parseInt(document.getElementById('prefixSelect').value);
+            const errorDiv = document.getElementById('error');
+            
+            errorDiv.textContent = '';
+            
+            // Validate
+            if (!input) {
+                errorDiv.textContent = 'Please enter an IPv6 address';
+                return;
+            }
+            
+            const bytes = parseIPv6(input);
+            if (!bytes) {
+                errorDiv.textContent = 'Invalid IPv6 address';
+                return;
+            }
+            
+            if (prefix < 16 || prefix > 64 || prefix % 4 !== 0) {
+                errorDiv.textContent = 'Prefix must be between /16 and /64 in multiples of 4';
+                return;
+            }
+            
+            // Apply prefix mask
+            const masked = applyPrefix(bytes, prefix);
+            rootNetwork = formatIPv6(masked);
+            rootPrefix = prefix;
+            
+            // Initialize tree
+            subnetTree = {};
+            const rootCidr = `${rootNetwork}/${rootPrefix}`;
+            subnetTree[rootCidr] = { _note: '', _color: '' };
+            
+            saveState();
+            render();
+        }
+
+        // Share URL
+        function shareURL() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy this URL:', url);
+            });
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            if (!rootNetwork) {
+                alert('No data to export. Please load a network first.');
+                return;
+            }
+
+            const rootCidr = `${rootNetwork}/${rootPrefix}`;
+            const rows = [];
+            
+            function collectRows(cidr, depth = 0) {
+                const [addr, prefix] = cidr.split('/');
+                const prefixNum = parseInt(prefix);
+                const node = getSubnetNode(cidr);
+                const children = Object.keys(node).filter(k => !k.startsWith('_'));
+                const isLeaf = children.length === 0;
+                
+                rows.push({
+                    subnet: cidr,
+                    contains: getSubnetCount(prefixNum),
+                    note: node._note || '',
+                    depth: depth
+                });
+                
+                if (!isLeaf) {
+                    children.sort(compareCIDR).forEach(childCidr => {
+                        collectRows(childCidr, depth + 1);
+                    });
+                }
+            }
+            
+            collectRows(rootCidr);
+            
+            // Build CSV content
+            let csv = 'Subnet,Contains,Note\n';
+            
+            rows.forEach(row => {
+                // Add indentation to subnet based on depth
+                const indent = '  '.repeat(row.depth);
+                const subnet = indent + row.subnet;
+                
+                // Escape fields that contain commas or quotes
+                const escapedSubnet = `"${subnet.replace(/"/g, '""')}"`;
+                const escapedContains = `"${row.contains.replace(/"/g, '""')}"`;
+                const escapedNote = `"${row.note.replace(/"/g, '""')}"`;
+                
+                csv += `${escapedSubnet},${escapedContains},${escapedNote}\n`;
+            });
+            
+            // Create download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `ipv6-subnet-plan-${rootNetwork.replace(/:/g, '-')}-${rootPrefix}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            if (!loadState()) {
+                // Load default
+                loadNetwork();
+            }
+        });
+
+        window.addEventListener('hashchange', () => {
+            loadState();
+        });
+    </script>
+</body>
+</html>

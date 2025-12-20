@@ -504,22 +504,27 @@
         // Get child subnet at given index
         function getChildSubnet(bytes, prefix, index) {
             const result = new Uint8Array(bytes);
-            const bitPos = prefix;
-            const byteIndex = Math.floor(bitPos / 8);
-            const bitOffset = bitPos % 8;
             
-            // Calculate how many bits we're incrementing
+            // Calculate the target prefix (next nibble boundary)
             const nextNibble = Math.ceil(prefix / 4) * 4;
-            const bitsToIncrement = nextNibble - prefix;
+            const bitsToAdd = nextNibble - prefix;
             
-            // Shift index to the correct position
-            const shiftedIndex = index << (8 - bitOffset - bitsToIncrement);
+            // Convert index to a value we can add to the address
+            // We need to shift the index to the correct bit position
+            let bitValue = BigInt(0);
+            for (let i = 0; i < 16; i++) {
+                bitValue = (bitValue << BigInt(8)) | BigInt(bytes[i]);
+            }
             
-            // Create mask to preserve existing bits
-            const mask = (0xFF << (8 - bitOffset)) & 0xFF;
+            // Add the index shifted to the correct position
+            const shift = BigInt(128 - nextNibble);
+            bitValue = bitValue | (BigInt(index) << shift);
             
-            // Apply the index
-            result[byteIndex] = (result[byteIndex] & mask) | (shiftedIndex & ~mask);
+            // Convert back to bytes
+            for (let i = 15; i >= 0; i--) {
+                result[i] = Number(bitValue & BigInt(0xFF));
+                bitValue = bitValue >> BigInt(8);
+            }
             
             return result;
         }

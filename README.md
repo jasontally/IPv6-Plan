@@ -18,7 +18,7 @@ This tool helps network engineers and administrators plan IPv6 address space by 
   - /20 → 16 /24 subnets, /21 → 8 /24 subnets, /22 → 4 /24 subnets, /23 → 2 /24 subnets
 - **Prefix Range**: Supports /16 to /64 prefix lengths, with /64 as the minimum assignable subnet
 - **Location-Based Planning**: Shows count of /48s (typical site/location size) for large allocations and /64s (minimum subnet size) for location-specific planning
-- **Visual Hierarchy**: Split and Join buttons span multiple rows to clearly show parent-child subnet relationships
+- **Visual Hierarchy**: Join buttons span multiple rows to clearly show parent-child subnet relationships
 - **Annotations**: Add notes and color-code subnets to document allocations and assignments
 - **Shareable URLs**: Complete planning state is encoded in the URL for easy sharing with colleagues
 - **CSV Export**: Download your subnet plan as a CSV file with proper hierarchy indentation

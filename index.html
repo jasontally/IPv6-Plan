@@ -336,12 +336,12 @@
                     <th style="width: 40%;">Note</th>
                     <th>Color</th>
                     <th style="background: #059669; color: white;">Split</th>
-                    <th colspan="9" style="background: #DC2626; color: white;">Join</th>
+                    <th id="joinHeader" colspan="12" style="background: #DC2626; color: white;">Join</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td colspan="14" class="empty-state">Enter a network address and click Go to start planning</td>
+                    <td colspan="17" class="empty-state">Enter a network address and click Go to start planning</td>
                 </tr>
             </tbody>
         </table>
@@ -703,6 +703,15 @@
                 }
             }
             
+            // Calculate max ancestry depth for join columns
+            const maxAncestryDepth = Math.max(1, ...rows.map(r => r.ancestry.length));
+            
+            // Update header colspan to match
+            const joinHeader = document.getElementById('joinHeader');
+            if (joinHeader) {
+                joinHeader.colSpan = maxAncestryDepth;
+            }
+            
             // Render rows
             rows.forEach((row, idx) => {
                 const tr = document.createElement('tr');
@@ -766,10 +775,9 @@
                 // Join button columns (one per ancestry level)
                 // Order: most specific (deepest/highest prefix like /24) on LEFT, 
                 //        least specific (root/lowest prefix like /20) on RIGHT
-                const maxJoinCols = 9;
                 
                 // First, add empty cells for unused columns on the left
-                const emptyCols = maxJoinCols - row.ancestry.length;
+                const emptyCols = maxAncestryDepth - row.ancestry.length;
                 for (let i = 0; i < emptyCols; i++) {
                     const emptyTd = document.createElement('td');
                     emptyTd.className = 'button-cell';

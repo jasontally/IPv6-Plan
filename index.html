@@ -180,11 +180,12 @@
             border-radius: 3px;
             cursor: pointer;
             font-weight: 600;
-            width: 100%;
-            height: 100%;
-            display: block;
-            margin: 0 1px;
             font-size: 12px;
+            position: absolute;
+            top: 0;
+            left: 1px;
+            right: 1px;
+            bottom: 0;
         }
 
         .join-button:hover {
@@ -235,11 +236,14 @@
             padding: 2px !important;
             text-align: center;
             vertical-align: middle;
-            height: 100%;
         }
         
         .button-cell[rowspan] {
             padding: 0 2px !important;
+        }
+        
+        .join-cell {
+            position: relative;
         }
 
         .empty-state {
@@ -781,8 +785,6 @@
                         const joinTd = document.createElement('td');
                         joinTd.className = 'button-cell join-cell';
                         joinTd.rowSpan = spanInfo.count;
-                        joinTd.style.height = '100%';
-                        joinTd.style.padding = '0';
                         
                         const [, ancestorPrefix] = ancestorCidr.split('/');
                         const joinBtn = document.createElement('button');

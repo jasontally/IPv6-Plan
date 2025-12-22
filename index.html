@@ -114,7 +114,7 @@
 
         th {
             background: #f0f0f0;
-            padding: 12px 8px;
+            padding: 6px 8px;
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid #ddd;
@@ -123,7 +123,7 @@
         }
 
         td {
-            padding: 8px;
+            padding: 4px 8px;
             border-bottom: 1px solid #eee;
         }
 
@@ -140,10 +140,10 @@
 
         .note-input {
             width: 100%;
-            padding: 6px 8px;
+            padding: 3px 6px;
             border: 1px solid #ddd;
             border-radius: 3px;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .note-input:focus {
@@ -155,14 +155,12 @@
             background: #059669;
             color: white;
             border: none;
-            padding: 4px 12px;
+            padding: 2px 6px;
             border-radius: 3px;
             cursor: pointer;
             font-weight: 600;
-            min-width: 60px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            height: 60px;
+            min-width: 40px;
+            font-size: 12px;
         }
 
         .split-button:hover:not(:disabled) {
@@ -178,16 +176,15 @@
             background: #DC2626;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 2px 6px;
             border-radius: 3px;
             cursor: pointer;
             font-weight: 600;
             width: 100%;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
             height: 100%;
             display: block;
-            margin: 0 2px;
+            margin: 0 1px;
+            font-size: 12px;
         }
 
         .join-button:hover {
@@ -754,42 +751,49 @@
                 const isAligned = (row.prefix % 4) === 0;
                 const nextNibble = isAligned ? row.prefix + 4 : Math.ceil(row.prefix / 4) * 4;
                 const numChildren = Math.pow(2, nextNibble - row.prefix);
-                splitBtn.textContent = isAligned ? `Split /${row.prefix}` : `Split →/${nextNibble}`;
-                splitBtn.title = `Split this network into ${numChildren} smaller /${nextNibble} subnets`;
+                splitBtn.textContent = isAligned ? `/${row.prefix}` : `→/${nextNibble}`;
+                splitBtn.title = `Split this /${row.prefix} network into ${numChildren} smaller /${nextNibble} subnets`;
                 splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
                 splitBtn.addEventListener('click', () => splitSubnet(row.cidr));
                 splitTd.appendChild(splitBtn);
                 tr.appendChild(splitTd);
                 
                 // Join button columns (one per ancestry level)
+                // Order: most specific (deepest/highest prefix like /24) on LEFT, 
+                //        least specific (root/lowest prefix like /20) on RIGHT
                 const maxJoinCols = 9;
-                for (let level = 0; level < maxJoinCols; level++) {
-                    if (level < row.ancestry.length) {
-                        const ancestorCidr = row.ancestry[level];
-                        const key = `${ancestorCidr}-${level}`;
-                        const spanInfo = rowspans.get(key);
+                
+                // First, add empty cells for unused columns on the left
+                const emptyCols = maxJoinCols - row.ancestry.length;
+                for (let i = 0; i < emptyCols; i++) {
+                    const emptyTd = document.createElement('td');
+                    emptyTd.className = 'button-cell';
+                    tr.appendChild(emptyTd);
+                }
+                
+                // Then add join buttons in reverse order (deepest ancestor first, root last)
+                for (let i = row.ancestry.length - 1; i >= 0; i--) {
+                    const ancestorCidr = row.ancestry[i];
+                    const key = `${ancestorCidr}-${i}`;
+                    const spanInfo = rowspans.get(key);
+                    
+                    if (spanInfo && spanInfo.row === idx) {
+                        const joinTd = document.createElement('td');
+                        joinTd.className = 'button-cell join-cell';
+                        joinTd.rowSpan = spanInfo.count;
+                        joinTd.style.height = '100%';
+                        joinTd.style.padding = '0';
                         
-                        if (spanInfo && spanInfo.row === idx) {
-                            const joinTd = document.createElement('td');
-                            joinTd.className = 'button-cell join-cell';
-                            joinTd.rowSpan = spanInfo.count;
-                            joinTd.style.height = '100%';
-                            joinTd.style.padding = '0';
-                            
-                            const [, ancestorPrefix] = ancestorCidr.split('/');
-                            const joinBtn = document.createElement('button');
-                            joinBtn.className = 'join-button';
-                            joinBtn.textContent = `Join /${ancestorPrefix}`;
-                            joinBtn.title = `Join subnets back together to form a /${ancestorPrefix} network`;
-                            joinBtn.addEventListener('click', () => joinSubnet(row.cidr, parseInt(ancestorPrefix)));
-                            joinTd.appendChild(joinBtn);
-                            tr.appendChild(joinTd);
-                        }
-                    } else {
-                        const emptyTd = document.createElement('td');
-                        emptyTd.className = 'button-cell';
-                        tr.appendChild(emptyTd);
+                        const [, ancestorPrefix] = ancestorCidr.split('/');
+                        const joinBtn = document.createElement('button');
+                        joinBtn.className = 'join-button';
+                        joinBtn.textContent = `/${ancestorPrefix}`;
+                        joinBtn.title = `Join subnets back together to form a /${ancestorPrefix} network`;
+                        joinBtn.addEventListener('click', () => joinSubnet(row.cidr, parseInt(ancestorPrefix)));
+                        joinTd.appendChild(joinBtn);
+                        tr.appendChild(joinTd);
                     }
+                    // If spanInfo exists but this isn't the first row, the cell is covered by rowspan - don't add anything
                 }
                 
                 tbody.appendChild(tr);

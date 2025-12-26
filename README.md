@@ -13,7 +13,7 @@ This tool helps network engineers and administrators plan IPv6 address space by 
 
 ## Features
 
-- **Flexible Initial Prefix**: Accepts any prefix length from /16 to /64, including non-nibble-aligned allocations (e.g., /21, /23, /47) to match real-world ISP assignments
+- **Flexible Initial Prefix**: Accepts any prefix length from /16 to /64, including non-nibble-aligned allocations (e.g., /21, /23, /47) to match real-world RIR assignments
 - **Nibble-Aligned Splitting**: All subnets split to the next 4-bit boundary, creating 2-16 child subnets depending on the current prefix
   - /20 → 16 /24 subnets, /21 → 8 /24 subnets, /22 → 4 /24 subnets, /23 → 2 /24 subnets
 - **Prefix Range**: Supports /16 to /64 prefix lengths, with /64 as the minimum assignable subnet
@@ -43,10 +43,12 @@ This tool helps network engineers and administrators plan IPv6 address space by 
 Splitting a subnet divides it into 2-16 child subnets at the next nibble boundary (multiple of 4):
 
 **Nibble-aligned splits** (create 16 children):
+
 - `3fff::/20` splits into 16 /24s: `3fff::/24`, `3fff:100::/24`, `3fff:200::/24`, ... `3fff:f00::/24`
 - `2001:db8::/32` splits into 16 /36s: `2001:db8::/36`, `2001:db8:1000::/36`, ... `2001:db8:f000::/36`
 
 **Non-nibble-aligned splits** (create 2-8 children):
+
 - `3fff::/21` splits into 8 /24s: `3fff::/24`, `3fff:100::/24`, ... `3fff:700::/24`
 - `3fff::/22` splits into 4 /24s: `3fff::/24`, `3fff:100::/24`, `3fff:200::/24`, `3fff:300::/24`
 - `3fff::/23` splits into 2 /24s: `3fff::/24`, `3fff:100::/24`
@@ -74,11 +76,13 @@ The "Contains" column shows different metrics based on prefix length:
 ## Browser Compatibility
 
 Works in all modern browsers that support:
+
 - ES6 JavaScript
 - HTML5
 - CSS3 (including CSS Grid and Flexbox)
 
 Tested on:
+
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
@@ -87,9 +91,10 @@ Tested on:
 
 ### Nibble Alignment
 
-**Initial Prefix**: Can be any value from /16 to /64 to accommodate real-world ISP allocations that may not fall on nibble boundaries (e.g., /21, /29, /47).
+**Initial Prefix**: Can be any value from /16 to /64 to accommodate real-world RIR allocations that may not fall on nibble boundaries (e.g., /21, /29, /47).
 
 **Splitting**: Always occurs at the next nibble boundary (next multiple of 4). The number of children created depends on the gap:
+
 - 1 bit to next boundary → 2 children (e.g., /23 → two /24s)
 - 2 bits to next boundary → 4 children (e.g., /22 → four /24s)
 - 3 bits to next boundary → 8 children (e.g., /21 → eight /24s)

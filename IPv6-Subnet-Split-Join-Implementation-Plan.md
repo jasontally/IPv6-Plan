@@ -1,11 +1,15 @@
 # IPv6 Subnet Planner - Implementation Plan
 
+**Copyright (c) 2024 Jason Tally and contributors** - SPDX-License-Identifier: MIT
+
 ## Overview
+
 Build a **static, single-file HTML/CSS/JS web application** for IPv6 subnet planning with visual split/join operations. The primary workflow is hierarchically dividing address space and annotating allocations.
 
 ## Core Requirements
 
 ### Functional Requirements
+
 - Accept any valid IPv6 address (GUA, ULA, link-local, multicast, documentation prefixes)
 - Default to RFC 9637 documentation prefix: `3fff::/20`
 - Allow prefix lengths from /16 to /64 (any value, not just nibble boundaries)
@@ -20,6 +24,7 @@ Build a **static, single-file HTML/CSS/JS web application** for IPv6 subnet plan
 - **CSV Export**: Export current subnet hierarchy to CSV with subnet, contains, and note columns
 
 ### Non-Functional Requirements
+
 - Single HTML file with embedded CSS and JS (or minimal separate files)
 - No build process or heavy frameworks
 - Must work offline once loaded
@@ -29,13 +34,14 @@ Build a **static, single-file HTML/CSS/JS web application** for IPv6 subnet plan
 
 **All subnet addresses must be displayed in compressed hexadecimal notation:**
 
-| Stored Value | Correct Display | Incorrect Display |
-|--------------|-----------------|-------------------|
-| Full form | `3fff::` | `3fff:0:0:0:0:0:0:0` |
-| Full form | `2001:db8::1` | `2001:db8:0:0:0:0:0:1` |
-| Full form | `fe80::1` | `fe80:0:0:0:0:0:0:1` |
+| Stored Value | Correct Display | Incorrect Display      |
+| ------------ | --------------- | ---------------------- |
+| Full form    | `3fff::`        | `3fff:0:0:0:0:0:0:0`   |
+| Full form    | `2001:db8::1`   | `2001:db8:0:0:0:0:0:1` |
+| Full form    | `fe80::1`       | `fe80:0:0:0:0:0:0:1`   |
 
 **Rules:**
+
 - Use lowercase hexadecimal characters
 - Compress the longest run of consecutive zero groups with `::`
 - Only one `::` per address (choose the longest or leftmost run if tied)
@@ -51,21 +57,21 @@ Clicking Split on a subnet divides it into child subnets at the next nibble boun
 
 **For nibble-aligned prefixes** (multiples of 4), splits create 16 children by adding 4 bits:
 
-| Split From | First Child | Second Child | ... | 16th Child |
-|------------|-------------|--------------|-----|------------|
-| `3fff::/20` | `3fff::/24` | `3fff:100::/24` | ... | `3fff:f00::/24` |
-| `3fff:100::/24` | `3fff:100::/28` | `3fff:110::/28` | ... | `3fff:1f0::/28` |
-| `2001:db8::/32` | `2001:db8::/36` | `2001:db8:1000::/36` | ... | `2001:db8:f000::/36` |
+| Split From      | First Child     | Second Child           | ... | 16th Child             |
+| --------------- | --------------- | ---------------------- | --- | ---------------------- |
+| `3fff::/20`     | `3fff::/24`     | `3fff:100::/24`        | ... | `3fff:f00::/24`        |
+| `3fff:100::/24` | `3fff:100::/28` | `3fff:110::/28`        | ... | `3fff:1f0::/28`        |
+| `2001:db8::/32` | `2001:db8::/36` | `2001:db8:1000::/36`   | ... | `2001:db8:f000::/36`   |
 | `2001:db8::/48` | `2001:db8::/52` | `2001:db8:0:1000::/52` | ... | `2001:db8:0:f000::/52` |
 
 **For non-nibble-aligned prefixes**, splits create 2^n children where n = (next nibble boundary - current prefix):
 
-| Split From | Children | First Child | Second Child | ... | Last Child |
-|------------|----------|-------------|--------------|-----|------------|
-| `3fff::/21` | 8 /24s | `3fff::/24` | `3fff:100::/24` | ... | `3fff:700::/24` |
-| `3fff::/22` | 4 /24s | `3fff::/24` | `3fff:100::/24` | `3fff:200::/24` | `3fff:300::/24` |
-| `3fff::/23` | 2 /24s | `3fff::/24` | `3fff:100::/24` | - | - |
-| `2001:db8::/47` | 2 /48s | `2001:db8::/48` | `2001:db8:1::/48` | - | - |
+| Split From      | Children | First Child     | Second Child      | ...             | Last Child      |
+| --------------- | -------- | --------------- | ----------------- | --------------- | --------------- |
+| `3fff::/21`     | 8 /24s   | `3fff::/24`     | `3fff:100::/24`   | ...             | `3fff:700::/24` |
+| `3fff::/22`     | 4 /24s   | `3fff::/24`     | `3fff:100::/24`   | `3fff:200::/24` | `3fff:300::/24` |
+| `3fff::/23`     | 2 /24s   | `3fff::/24`     | `3fff:100::/24`   | -               | -               |
+| `2001:db8::/47` | 2 /48s   | `2001:db8::/48` | `2001:db8:1::/48` | -               | -               |
 
 **Critical:** When splitting `3fff::/20`, the second subnet is `3fff:100::/24`, NOT `3fff:1000::/24`. The increment is always at the nibble boundary (the 6th nibble for /20→/24).
 
@@ -77,7 +83,7 @@ Clicking Join collapses all sibling subnets back into their parent, discarding a
 
 ### Button Behavior
 
-1. **Split Button**: 
+1. **Split Button**:
    - For nibble-aligned prefixes: Displays the current prefix (e.g., `/20`)
    - For non-nibble-aligned: Displays arrow to target (e.g., `→/24` for a /21)
    - Tooltip shows number of children that will be created
@@ -117,6 +123,7 @@ Split and Join buttons occupy columns on the right side of the table. Join butto
 ### Row Spanning Logic
 
 When rendering join buttons:
+
 1. Identify which row is the "first" child of each split group (shares network address with parent)
 2. Calculate how many visible descendant rows exist under each ancestor
 3. Set `rowspan` accordingly so the join button visually spans all affected rows
@@ -135,11 +142,13 @@ When rendering join buttons:
 ### Validation Philosophy: Permissive
 
 Accept any syntactically valid IPv6 address. Do NOT reject addresses based on:
+
 - Address type (GUA, ULA, link-local, loopback, multicast all valid)
 - Whether it "looks like" a network address
 - Custom pattern matching
 
 **Only reject:**
+
 - Syntactically invalid IPv6 strings
 - Prefix lengths outside /16 to /64 range
 
@@ -148,6 +157,7 @@ Accept any syntactically valid IPv6 address. Do NOT reject addresses based on:
 ### Data Structure
 
 Use a nested tree where:
+
 - Keys are CIDR strings (e.g., `3fff::/24`)
 - Leaf nodes contain `_note` and `_color` properties
 - Non-leaf nodes contain child subnet keys
@@ -163,6 +173,7 @@ Use a nested tree where:
 ### URL Sharing
 
 Encode the complete subnet tree state into a compressed URL hash. When loading, decode and restore:
+
 - Root network
 - All splits (tree structure)
 - All notes and colors
@@ -170,6 +181,7 @@ Encode the complete subnet tree state into a compressed URL hash. When loading, 
 ### CSV Export
 
 Export functionality:
+
 - Includes Subnet, Contains, and Note columns
 - Adds indentation (spaces) to subnet column to show hierarchy depth
 - Properly escapes CSV fields (commas and quotes)
@@ -177,11 +189,11 @@ Export functionality:
 
 ## Subnet Count Display
 
-| Prefix Range | Display |
-|--------------|---------|
-| /16 to /44 | Number of /48s contained |
-| /48 to /60 | Number of /64s contained |
-| /64 | "Host Subnet" |
+| Prefix Range | Display                  |
+| ------------ | ------------------------ |
+| /16 to /44   | Number of /48s contained |
+| /48 to /60   | Number of /64s contained |
+| /64          | "Host Subnet"            |
 
 ## User Interface
 
@@ -204,14 +216,14 @@ Export functionality:
 
 ### Table Columns
 
-| Column | Content |
-|--------|---------|
-| Subnet | Compressed hex address with prefix (e.g., `3fff::/24`) |
-| Contains | Count of /48s or /64s, or "Host Subnet" |
-| Note | Editable text field for allocation notes |
-| Color | Button to open color picker for row highlighting |
-| Split | Button showing current prefix, initiates split |
-| Join | Button(s) showing target prefix, collapses to parent (multiple columns for nested splits) |
+| Column   | Content                                                                                   |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Subnet   | Compressed hex address with prefix (e.g., `3fff::/24`)                                    |
+| Contains | Count of /48s or /64s, or "Host Subnet"                                                   |
+| Note     | Editable text field for allocation notes                                                  |
+| Color    | Button to open color picker for row highlighting                                          |
+| Split    | Button showing current prefix, initiates split                                            |
+| Join     | Button(s) showing target prefix, collapses to parent (multiple columns for nested splits) |
 
 ### Color Palette (16 colors for row highlighting)
 
@@ -227,6 +239,7 @@ All colors are light/pastel shades with good text readability and visual distinc
 ## Footer Content
 
 ### Section 1: About This Tool
+
 - Brief description of purpose: hierarchically divide IPv6 address space
 - Key features (concise bullets):
   - Nibble-aligned splitting (4-bit boundaries, 2-16 children depending on current prefix)
@@ -238,9 +251,11 @@ All colors are light/pastel shades with good text readability and visual distinc
   - Quick-load buttons for documentation prefixes
 
 ### Section 2: Author Credit
+
 "This tool was made by [Jason Tally](https://JasonTally.com) with the help of [opencode.ai](https://opencode.ai/) and Claude."
 
 ### Section 3: Credits
+
 - Link to [Caesar Kabalan's](https://www.caesarkabalan.com/) [IPv4 Visual Subnet Calculator](https://visualsubnetcalc.com/)
 - Link to [davidc's](https://www.davidc.net/) [original IPv4 subnet calculator](https://www.davidc.net/sites/default/subnets/subnets.html)
 

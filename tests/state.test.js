@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+/**
+ * IPv6 Subnet Planner Tests
+ * Copyright (c) 2024 Jason Tally and contributors
+ * SPDX-License-Identifier: MIT
+ */
 
-describe('State Management', () => {
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+describe("State Management", () => {
   let rootNetwork;
   let rootPrefix;
   let subnetTree;
@@ -19,40 +25,42 @@ describe('State Management', () => {
     subnetTree = {};
   });
 
-  describe('saveState', () => {
-    it('should save network and prefix to state object', () => {
-      rootNetwork = '3fff::';
+  describe("saveState", () => {
+    it("should save network and prefix to state object", () => {
+      rootNetwork = "3fff::";
       rootPrefix = 20;
-      subnetTree = { '3fff::/20': { _note: '', _color: '' } };
+      subnetTree = { "3fff::/20": { _note: "", _color: "" } };
 
       const state = {
         network: rootNetwork,
         prefix: rootPrefix,
-        tree: subnetTree
+        tree: subnetTree,
       };
 
-      expect(state.network).toBe('3fff::');
+      expect(state.network).toBe("3fff::");
       expect(state.prefix).toBe(20);
       expect(state.tree).toBeDefined();
     });
 
-    it('should serialize state to JSON', () => {
-      const tree = { '3fff::/20': { _note: 'Test', _color: '#FF0000' } };
-      const json = JSON.stringify({ network: '3fff::', prefix: 20, tree });
+    it("should serialize state to JSON", () => {
+      const tree = { "3fff::/20": { _note: "Test", _color: "#FF0000" } };
+      const json = JSON.stringify({ network: "3fff::", prefix: 20, tree });
 
-      expect(json).toBe(JSON.stringify({ network: '3fff::', prefix: 20, tree }));
+      expect(json).toBe(
+        JSON.stringify({ network: "3fff::", prefix: 20, tree }),
+      );
     });
 
-    it('should encode JSON to base64 for URL', () => {
-      const state = { network: '3fff::', prefix: 20, tree: {} };
+    it("should encode JSON to base64 for URL", () => {
+      const state = { network: "3fff::", prefix: 20, tree: {} };
       const json = JSON.stringify(state);
       const compressed = btoa(encodeURIComponent(json));
 
       expect(compressed).toBeDefined();
-      expect(typeof compressed).toBe('string');
+      expect(typeof compressed).toBe("string");
     });
 
-    it('should not save if rootNetwork is null', () => {
+    it("should not save if rootNetwork is null", () => {
       rootNetwork = null;
 
       // Should early return without saving
@@ -60,9 +68,9 @@ describe('State Management', () => {
     });
   });
 
-  describe('loadState', () => {
-    it('should decode base64 from URL hash', () => {
-      const state = { network: '3fff::', prefix: 20, tree: {} };
+  describe("loadState", () => {
+    it("should decode base64 from URL hash", () => {
+      const state = { network: "3fff::", prefix: 20, tree: {} };
       const json = JSON.stringify(state);
       const hash = btoa(encodeURIComponent(json));
 
@@ -71,17 +79,17 @@ describe('State Management', () => {
       expect(decoded).toBe(json);
     });
 
-    it('should parse JSON to restore state', () => {
+    it("should parse JSON to restore state", () => {
       const json = '{"network":"3fff::","prefix":20,"tree":{}}';
       const state = JSON.parse(json);
 
-      expect(state.network).toBe('3fff::');
+      expect(state.network).toBe("3fff::");
       expect(state.prefix).toBe(20);
       expect(state.tree).toEqual({});
     });
 
-    it('should handle invalid JSON gracefully', () => {
-      const invalidHash = 'not-valid-json';
+    it("should handle invalid JSON gracefully", () => {
+      const invalidHash = "not-valid-json";
 
       try {
         const decoded = decodeURIComponent(atob(invalidHash));
@@ -92,57 +100,57 @@ describe('State Management', () => {
       }
     });
 
-    it('should return false for empty hash', () => {
-      const hash = '';
+    it("should return false for empty hash", () => {
+      const hash = "";
 
-      expect(hash).toBe('');
+      expect(hash).toBe("");
     });
   });
 
-  describe('loadNetwork validation', () => {
-    it('should reject empty network input', () => {
-      const input = '';
+  describe("loadNetwork validation", () => {
+    it("should reject empty network input", () => {
+      const input = "";
       const prefix = 20;
 
-      expect(input.trim()).toBe('');
+      expect(input.trim()).toBe("");
       expect(prefix).toBe(20);
     });
 
-    it('should reject prefix outside /16-/64 range', () => {
+    it("should reject prefix outside /16-/64 range", () => {
       const prefix = 10;
 
       expect(prefix < 16 || prefix > 64).toBe(true);
     });
 
-    it('should accept valid prefix range', () => {
+    it("should accept valid prefix range", () => {
       const prefix = 48;
 
       expect(prefix >= 16 && prefix <= 64).toBe(true);
     });
 
-    it('should reject /64 for splitting', () => {
+    it("should reject /64 for splitting", () => {
       const prefix = 64;
 
       expect(prefix >= 64).toBe(true);
     });
   });
 
-  describe('State persistence flow', () => {
-    it('should preserve state through save/load cycle', () => {
+  describe("State persistence flow", () => {
+    it("should preserve state through save/load cycle", () => {
       // Initial state
       const initialState = {
-        network: '2001:db8::',
+        network: "2001:db8::",
         prefix: 32,
         tree: {
-          '2001:db8::/32': {
-            _note: 'Documentation prefix',
-            _color: '#E5F3FF',
-            '2001:db8::/36': {
-              _note: '',
-              _color: ''
-            }
-          }
-        }
+          "2001:db8::/32": {
+            _note: "Documentation prefix",
+            _color: "#E5F3FF",
+            "2001:db8::/36": {
+              _note: "",
+              _color: "",
+            },
+          },
+        },
       };
 
       // Save
@@ -157,22 +165,22 @@ describe('State Management', () => {
       expect(loadedState).toEqual(initialState);
     });
 
-    it('should handle tree with multiple levels', () => {
+    it("should handle tree with multiple levels", () => {
       const tree = {
-        '3fff::/20': {
-          _note: 'Root',
-          _color: '',
-          '3fff::/24': {
-            _note: 'Child',
-            _color: '#FFE5E5',
-            '3fff::/28': { _note: '', _color: '' }
-          }
-        }
+        "3fff::/20": {
+          _note: "Root",
+          _color: "",
+          "3fff::/24": {
+            _note: "Child",
+            _color: "#FFE5E5",
+            "3fff::/28": { _note: "", _color: "" },
+          },
+        },
       };
 
-      expect(tree['3fff::/20']._note).toBe('Root');
-      expect(tree['3fff::/20']['3fff::/24']._note).toBe('Child');
-      expect(tree['3fff::/20']['3fff::/24']['3fff::/28']).toBeDefined();
+      expect(tree["3fff::/20"]._note).toBe("Root");
+      expect(tree["3fff::/20"]["3fff::/24"]._note).toBe("Child");
+      expect(tree["3fff::/20"]["3fff::/24"]["3fff::/28"]).toBeDefined();
     });
   });
 });

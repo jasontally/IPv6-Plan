@@ -2,9 +2,12 @@
 
 This file contains guidance for LLM agents working on the IPv6 Subnet Planner codebase.
 
+**Copyright (c) 2024 Jason Tally and contributors** - SPDX-License-Identifier: MIT
+
 ## Project Overview
 
 This is a **single-file web application** (HTML/CSS/JS) for planning IPv6 address space allocations. The app has:
+
 - No build process
 - No external dependencies
 - Works entirely in the browser
@@ -100,6 +103,7 @@ function getChildSubnet(bytes, prefix, index) {
 #### Data Structures
 
 **Subnet Tree (global `subnetTree`):**
+
 ```javascript
 {
   "3fff::/20": {
@@ -115,6 +119,7 @@ function getChildSubnet(bytes, prefix, index) {
 ```
 
 **Important:**
+
 - `_note` and `_color` are prefixed with underscore
 - Child keys are CIDR strings pointing to nested objects
 - Children are sorted numerically by IPv6 address, not string
@@ -124,12 +129,14 @@ function getChildSubnet(bytes, prefix, index) {
 ### IPv6 Address Handling
 
 **Always use these functions:**
+
 - `parseIPv6(addr)` - Parse string to 16-byte Uint8Array
 - `formatIPv6(bytes)` - Format bytes to compressed RFC 5952 string
 - `applyPrefix(bytes, prefix)` - Mask to network address
 - `compareCIDR(a, b)` - Numerically compare CIDR addresses
 
 **Never:**
+
 - Parse IPv6 manually
 - Display expanded addresses (always use `formatIPv6`)
 - Sort addresses as strings (use `compareCIDR`)
@@ -137,12 +144,14 @@ function getChildSubnet(bytes, prefix, index) {
 ### Subnet Splitting
 
 **Split calculation:**
+
 ```
 nextNibble = (prefix % 4 === 0) ? prefix + 4 : Math.ceil(prefix / 4) * 4
 numChildren = 2^(nextNibble - prefix)
 ```
 
 **Example child addresses for `/20` split:**
+
 - Child 0: `3fff::/24`
 - Child 1: `3fff:100::/24` (note: `100`, not `1000`)
 - Child 2: `3fff:200::/24`
@@ -166,6 +175,7 @@ The codebase now includes automated tests with Vitest (unit tests) and Playwrigh
 ### Running Tests
 
 **Unit Tests (Vitest):**
+
 ```bash
 # Run all unit tests
 npm test
@@ -181,6 +191,7 @@ npm test:run
 ```
 
 **E2E Tests (Playwright):**
+
 ```bash
 # Install Playwright browsers (first time only)
 npx playwright install
@@ -220,7 +231,7 @@ Despite automated tests, manual testing is still recommended after changes:
 6. Test URL sharing (copy URL, open in new tab)
 7. Test CSV export
 
-2. **Common test cases:**
+8. **Common test cases:**
    - Split `/20` → 16 `/24`s
    - Split `/21` → 8 `/24`s
    - Split `/22` → 4 `/24`s
@@ -230,7 +241,7 @@ Despite automated tests, manual testing is still recommended after changes:
    - Verify URL hash updates correctly
    - Verify load from URL hash works
 
-3. **Edge cases:**
+9. **Edge cases:**
    - Try `/64` (should show "Host Subnet", split disabled)
    - Try non-nibble-aligned prefixes (`/21`, `/22`, `/23`)
    - Try various IPv6 address types (GUA, ULA, link-local)
@@ -240,6 +251,7 @@ Despite automated tests, manual testing is still recommended after changes:
 ## Validation Philosophy
 
 **Permissive validation:**
+
 - Accept any syntactically valid IPv6 address
 - Do NOT reject based on address type (GUA, ULA, link-local, multicast all OK)
 - Only reject:

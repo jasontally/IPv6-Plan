@@ -1,391 +1,468 @@
-<!DOCTYPE html>
+<!--
+    IPv6 Subnet Planner
+    Copyright (c) 2024 Jason Tally and contributors
+    SPDX-License-Identifier: MIT
+-->
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=0.5"
+    />
     <title>IPv6 Subnet Planner</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-        html {
-            touch-action: pan-x pan-y pinch-zoom;
-        }
+      html {
+        touch-action: pan-x pan-y pinch-zoom;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-            background: #f5f5f5;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        background: #f5f5f5;
+      }
 
-        h1 {
-            margin-bottom: 20px;
-            color: #333;
-        }
+      h1 {
+        margin-bottom: 20px;
+        color: #333;
+      }
 
-        .input-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+      .input-form {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-        .input-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+      .input-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
 
-        .input-group label {
-            font-weight: 500;
-        }
+      .input-group label {
+        font-weight: 500;
+      }
 
-        .input-group input[type="text"] {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: monospace;
-        }
+      .input-group input[type="text"] {
+        flex: 1;
+        min-width: 200px;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: monospace;
+      }
 
-        .input-group select {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: monospace;
-        }
+      .input-group select {
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: monospace;
+      }
 
-        .input-group button {
-            padding: 8px 20px;
-            background: #7C3AED;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-        }
+      .input-group button {
+        padding: 8px 20px;
+        background: #7c3aed;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+      }
 
-        .input-group button:hover {
-            background: #6D28D9;
-        }
+      .input-group button:hover {
+        background: #6d28d9;
+      }
 
-        .share-button {
-            margin-left: auto;
-            background: #0891B2 !important;
-        }
+      .share-button {
+        margin-left: auto;
+        background: #0891b2 !important;
+      }
 
-        .share-button:hover {
-            background: #0E7490 !important;
-        }
+      .share-button:hover {
+        background: #0e7490 !important;
+      }
 
-        .doc-button {
-            background: #64748B !important;
-            font-size: 13px !important;
-            padding: 6px 12px !important;
-        }
+      .doc-button {
+        background: #64748b !important;
+        font-size: 13px !important;
+        padding: 6px 12px !important;
+      }
 
-        .doc-button:hover {
-            background: #475569 !important;
-        }
+      .doc-button:hover {
+        background: #475569 !important;
+      }
 
-        .error {
-            color: #d32f2f;
-            margin-top: 10px;
-            font-size: 14px;
-        }
+      .error {
+        color: #d32f2f;
+        margin-top: 10px;
+        font-size: 14px;
+      }
 
-        .subnet-table-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
+      .subnet-table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+      }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
 
-        th {
-            background: #f0f0f0;
-            padding: 6px 8px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #ddd;
-            position: sticky;
-            top: 0;
-        }
+      th {
+        background: #f0f0f0;
+        padding: 6px 8px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #ddd;
+        position: sticky;
+        top: 0;
+      }
 
-        td {
-            padding: 4px 8px;
-            border-bottom: 1px solid #eee;
-        }
+      td {
+        padding: 4px 8px;
+        border-bottom: 1px solid #eee;
+      }
 
-        .subnet-cell {
-            font-family: monospace;
-            font-size: 13px;
-            font-weight: 500;
-        }
+      .subnet-cell {
+        font-family: monospace;
+        font-size: 13px;
+        font-weight: 500;
+      }
 
-        .contains-cell {
-            color: #666;
-            font-size: 13px;
-        }
+      .contains-cell {
+        color: #666;
+        font-size: 13px;
+      }
 
-        .note-input {
-            width: 100%;
-            padding: 3px 6px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 12px;
-        }
+      .note-input {
+        width: 100%;
+        padding: 3px 6px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        font-size: 12px;
+      }
 
-        .note-input:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
+      .note-input:focus {
+        outline: none;
+        border-color: #2196f3;
+      }
 
-        .split-button {
-            background: #059669;
-            color: white;
-            border: none;
-            padding: 2px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-weight: 600;
-            min-width: 40px;
-            font-size: 12px;
-        }
+      .split-button {
+        background: #059669;
+        color: white;
+        border: none;
+        padding: 2px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-weight: 600;
+        min-width: 40px;
+        font-size: 12px;
+      }
 
-        .split-button:hover:not(:disabled) {
-            background: #047857;
-        }
+      .split-button:hover:not(:disabled) {
+        background: #047857;
+      }
 
-        .split-button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+      .split-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
 
-        .join-button {
-            background: #DC2626;
-            color: white;
-            border: none;
-            padding: 2px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 12px;
-            position: absolute;
-            top: 0;
-            left: 1px;
-            right: 1px;
-            bottom: 0;
-        }
+      .join-button {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 2px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        position: absolute;
+        top: 0;
+        left: 1px;
+        right: 1px;
+        bottom: 0;
+      }
 
-        .join-button:hover {
-            background: #B91C1C;
-        }
+      .join-button:hover {
+        background: #b91c1c;
+      }
 
-        .color-picker {
-            margin-top: 10px;
-            display: none;
-        }
+      .color-picker {
+        margin-top: 10px;
+        display: none;
+      }
 
-        .color-picker.show {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+      .color-picker.show {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
 
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            border: 2px solid #ccc;
-            cursor: pointer;
-        }
+      .color-option {
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        border: 2px solid #ccc;
+        cursor: pointer;
+      }
 
-        .color-option:hover {
-            border-color: #666;
-        }
+      .color-option:hover {
+        border-color: #666;
+      }
 
-        .color-button {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px solid #ddd;
-            cursor: pointer;
-            background: white;
-        }
+      .color-button {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        background: white;
+      }
 
-        .color-button:hover {
-            border-color: #999;
-        }
+      .color-button:hover {
+        border-color: #999;
+      }
 
-        tr.colored {
-            background-color: var(--row-color);
-        }
+      tr.colored {
+        background-color: var(--row-color);
+      }
 
-        .button-cell {
-            padding: 2px !important;
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        .button-cell[rowspan] {
-            padding: 0 2px !important;
-        }
-        
-        .join-cell {
-            position: relative;
-            min-width: 32px;
-        }
+      .button-cell {
+        padding: 2px !important;
+        text-align: center;
+        vertical-align: middle;
+      }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
+      .button-cell[rowspan] {
+        padding: 0 2px !important;
+      }
 
-        .footer {
-            margin-top: 40px;
-            padding: 30px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+      .join-cell {
+        position: relative;
+        min-width: 32px;
+      }
 
-        .footer h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #333;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
 
-        .footer p {
-            margin-bottom: 10px;
-            line-height: 1.6;
-            color: #555;
-        }
+      .footer {
+        margin-top: 40px;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-        .footer a {
-            color: #2196F3;
-            text-decoration: none;
-        }
+      .footer h2 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #333;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+      }
 
-        .footer a:hover {
-            text-decoration: underline;
-        }
+      .footer p {
+        margin-bottom: 10px;
+        line-height: 1.6;
+        color: #555;
+      }
 
-        .footer-section {
-            margin-bottom: 30px;
-        }
+      .footer a {
+        color: #2196f3;
+        text-decoration: none;
+      }
 
-        .footer-section:last-child {
-            margin-bottom: 0;
-        }
+      .footer a:hover {
+        text-decoration: underline;
+      }
 
-        .footer ul {
-            margin: 10px 0 10px 20px;
-            line-height: 1.8;
-            color: #555;
-        }
+      .footer-section {
+        margin-bottom: 30px;
+      }
 
-        .footer li {
-            margin-bottom: 5px;
-        }
+      .footer-section:last-child {
+        margin-bottom: 0;
+      }
+
+      .footer ul {
+        margin: 10px 0 10px 20px;
+        line-height: 1.8;
+        color: #555;
+      }
+
+      .footer li {
+        margin-bottom: 5px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>IPv6 Subnet Planner</h1>
-    
+
     <div class="input-form">
-        <div class="input-group">
-            <label>Network:</label>
-            <input type="text" id="networkInput" value="3fff::" placeholder="Enter IPv6 address">
-            
-            <label>Prefix:</label>
-            <select id="prefixSelect">
-            </select>
-            
-            <button onclick="loadNetwork()">Go</button>
-            <button class="share-button" onclick="shareURL()">Share</button>
-            <button class="share-button" onclick="exportCSV()">Export CSV</button>
-        </div>
-        <div class="input-group" style="margin-top: 10px;">
-            <label>Quick Load:</label>
-            <button class="doc-button" onclick="loadDocPrefix('3fff::', 20)">3fff::/20 (RFC 9637)</button>
-            <button class="doc-button" onclick="loadDocPrefix('2001:db8::', 32)">2001:db8::/32 (RFC 3849)</button>
-        </div>
-        <div id="error" class="error"></div>
+      <div class="input-group">
+        <label>Network:</label>
+        <input
+          type="text"
+          id="networkInput"
+          value="3fff::"
+          placeholder="Enter IPv6 address"
+        />
+
+        <label>Prefix:</label>
+        <select id="prefixSelect"></select>
+
+        <button onclick="loadNetwork()">Go</button>
+        <button class="share-button" onclick="shareURL()">Share</button>
+        <button class="share-button" onclick="exportCSV()">Export CSV</button>
+      </div>
+      <div class="input-group" style="margin-top: 10px">
+        <label>Quick Load:</label>
+        <button class="doc-button" onclick="loadDocPrefix('3fff::', 20)">
+          3fff::/20 (RFC 9637)
+        </button>
+        <button class="doc-button" onclick="loadDocPrefix('2001:db8::', 32)">
+          2001:db8::/32 (RFC 3849)
+        </button>
+      </div>
+      <div id="error" class="error"></div>
     </div>
 
     <div class="subnet-table-container">
-        <table id="subnetTable">
-            <thead>
-                <tr>
-                    <th>Subnet</th>
-                    <th>Contains</th>
-                    <th style="width: 40%;">Note</th>
-                    <th>Color</th>
-                    <th style="background: #059669; color: white;">Split</th>
-                    <th id="joinHeader" colspan="12" style="background: #DC2626; color: white;">Join</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <tr>
-                    <td colspan="17" class="empty-state">Enter a network address and click Go to start planning</td>
-                </tr>
-            </tbody>
-        </table>
+      <table id="subnetTable">
+        <thead>
+          <tr>
+            <th>Subnet</th>
+            <th>Contains</th>
+            <th style="width: 40%">Note</th>
+            <th>Color</th>
+            <th style="background: #059669; color: white">Split</th>
+            <th
+              id="joinHeader"
+              colspan="12"
+              style="background: #dc2626; color: white"
+            >
+              Join
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="17" class="empty-state">
+              Enter a network address and click Go to start planning
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="footer">
-        <div class="footer-section">
-            <h2>About This Tool</h2>
-            <p>Hierarchically divide IPv6 address space for network planning and documentation.</p>
-            
-            <p><strong>Key Features:</strong></p>
-            <ul>
-                <li><strong>Nibble-Aligned Splitting:</strong> Click the green "Split" button to divide a network into smaller subnets at 4-bit boundaries (/20, /24, /28, etc.), creating 16 child subnets per split.</li>
-                <li><strong>Join Subnets:</strong> Click the red "Join" button to merge subnets back together into their parent network.</li>
-                <li><strong>Prefix Range:</strong> /16 to /64, with /64 as the minimum assignable subnet.</li>
-                <li><strong>Location-Based Planning:</strong> Shows count of /48s (typical site/location size) for prefixes &lt; /48, and /64s (minimum subnet size) for prefixes ≥ /48.</li>
-                <li><strong>Visual Hierarchy:</strong> Join buttons span multiple rows to show parent-child relationships.</li>
-                <li><strong>Annotations:</strong> Add notes and color-code subnets for documentation.</li>
-                <li><strong>Shareable URLs:</strong> Complete state encoded in URL for easy sharing.</li>
-            </ul>
-        </div>
+      <div class="footer-section">
+        <h2>About This Tool</h2>
+        <p>
+          Hierarchically divide IPv6 address space for network planning and
+          documentation.
+        </p>
 
-        <div class="footer-section">
-            <p>This tool was made by <a href="https://JasonTally.com" target="_blank">Jason Tally</a> with the help of <a href="https://opencode.ai/" target="_blank">opencode.ai</a> and Claude. The code is available on <a href="https://github.com/jasontally/IPv6-Plan" target="_blank">GitHub</a>.</p>
-        </div>
+        <p><strong>Key Features:</strong></p>
+        <ul>
+          <li>
+            <strong>Nibble-Aligned Splitting:</strong> Click the green "Split"
+            button to divide a network into smaller subnets at 4-bit boundaries
+            (/20, /24, /28, etc.), creating 16 child subnets per split.
+          </li>
+          <li>
+            <strong>Join Subnets:</strong> Click the red "Join" button to merge
+            subnets back together into their parent network.
+          </li>
+          <li>
+            <strong>Prefix Range:</strong> /16 to /64, with /64 as the minimum
+            assignable subnet.
+          </li>
+          <li>
+            <strong>Location-Based Planning:</strong> Shows count of /48s
+            (typical site/location size) for prefixes &lt; /48, and /64s
+            (minimum subnet size) for prefixes ≥ /48.
+          </li>
+          <li>
+            <strong>Visual Hierarchy:</strong> Join buttons span multiple rows
+            to show parent-child relationships.
+          </li>
+          <li>
+            <strong>Annotations:</strong> Add notes and color-code subnets for
+            documentation.
+          </li>
+          <li>
+            <strong>Shareable URLs:</strong> Complete state encoded in URL for
+            easy sharing.
+          </li>
+        </ul>
+      </div>
 
-        <div class="footer-section">
-            <h2>Credits</h2>
-            <p>This IPv6 Subnet Planner was inspired by:</p>
-            <ul>
-                <li><a href="https://www.caesarkabalan.com/" target="_blank">Caesar Kabalan's</a> <a href="https://visualsubnetcalc.com/" target="_blank">IPv4 Visual Subnet Calculator</a></li>
-                <li><a href="https://www.davidc.net/" target="_blank">davidc's</a> <a href="https://www.davidc.net/sites/default/subnets/subnets.html" target="_blank">original IPv4 subnet calculator</a></li>
-            </ul>
-        </div>
+      <div class="footer-section">
+        <p>
+          This tool was made by
+          <a href="https://JasonTally.com" target="_blank">Jason Tally</a> with
+          the help of
+          <a href="https://opencode.ai/" target="_blank">opencode.ai</a> and
+          Claude. The code is available on
+          <a href="https://github.com/jasontally/IPv6-Plan" target="_blank"
+            >GitHub</a
+          >.
+        </p>
+      </div>
 
-        <div class="footer-section" style="text-align: center; color: #999; font-size: 12px;">
-            Version 0.3.1
-        </div>
+      <div class="footer-section">
+        <h2>Credits</h2>
+        <p>This IPv6 Subnet Planner was inspired by:</p>
+        <ul>
+          <li>
+            <a href="https://www.caesarkabalan.com/" target="_blank"
+              >Caesar Kabalan's</a
+            >
+            <a href="https://visualsubnetcalc.com/" target="_blank"
+              >IPv4 Visual Subnet Calculator</a
+            >
+          </li>
+          <li>
+            <a href="https://www.davidc.net/" target="_blank">davidc's</a>
+            <a
+              href="https://www.davidc.net/sites/default/subnets/subnets.html"
+              target="_blank"
+              >original IPv4 subnet calculator</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <div
+        class="footer-section"
+        style="text-align: center; color: #999; font-size: 12px"
+      >
+        Version 0.3.1
+      </div>
     </div>
 
     <script src="app.js"></script>
-</body>
+  </body>
 </html>

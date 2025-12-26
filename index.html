@@ -185,6 +185,27 @@
         cursor: not-allowed;
       }
 
+      .split-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        align-items: stretch;
+      }
+
+      .split-select {
+        width: 100%;
+        padding: 2px 4px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .split-select:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
       .join-button {
         background: #dc2626;
         color: white;
@@ -387,16 +408,22 @@
         <p><strong>Key Features:</strong></p>
         <ul>
           <li>
-            <strong>Nibble-Aligned Splitting:</strong> Click the green "Split"
-            button to divide a network into smaller subnets at 4-bit boundaries
-            (/20, /24, /28, etc.), creating 16 child subnets per split.
+            <strong>Nibble-Aligned Splitting (Default):</strong> Click the green
+            "Split" button to divide a network into smaller subnets at 4-bit
+            boundaries (/20, /24, /28, etc.), creating 16 child subnets per
+            split.
           </li>
           <li>
-            <strong>Join Subnets:</strong> Click the red "Join" button to merge
+            <strong>Custom Split Targets:</strong> Use the dropdown next to the
+            Split button to select any target prefix for geographical
+            denomination models or specialized addressing schemes.
+          </li>
+          <li>
+            <strong>Join Subnets:</strong> Click red "Join" button to merge
             subnets back together into their parent network.
           </li>
           <li>
-            <strong>Prefix Range:</strong> /16 to /64, with /64 as the minimum
+            <strong>Prefix Range:</strong> /16 to /64, with /64 as minimum
             assignable subnet.
           </li>
           <li>
@@ -459,7 +486,7 @@
         class="footer-section"
         style="text-align: center; color: #999; font-size: 12px"
       >
-        Version 0.3.1
+        Version 0.5
       </div>
     </div>
 

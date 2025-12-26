@@ -147,4 +147,46 @@ test.describe("Split and Join Operations", () => {
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toHaveText("Invalid IPv6 address");
   });
+
+  test("should split /32 into /34 subnets using custom target", async ({
+    page,
+  }) => {
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "32");
+    await page.click('button:has-text("Go")');
+
+    const splitSelect = page.locator(".split-select").first();
+    await splitSelect.selectOption("34");
+
+    const splitBtn = page.locator(".split-button").first();
+    await splitBtn.click();
+
+    // Should show 5 rows (1 root + 4 children for /34 split)
+    const subnetCells = page.locator(".subnet-cell");
+    await expect(subnetCells).toHaveCount(5);
+
+    // First child should be at /34 prefix
+    await expect(subnetCells.nth(1)).toHaveText("2001:db8::/34");
+  });
+
+  test("should split /32 into /35 subnets using custom target", async ({
+    page,
+  }) => {
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "32");
+    await page.click('button:has-text("Go")');
+
+    const splitSelect = page.locator(".split-select").first();
+    await splitSelect.selectOption("35");
+
+    const splitBtn = page.locator(".split-button").first();
+    await splitBtn.click();
+
+    // Should show 9 rows (1 root + 8 children for /35 split)
+    const subnetCells = page.locator(".subnet-cell");
+    await expect(subnetCells).toHaveCount(9);
+
+    // First child should be at /35 prefix
+    await expect(subnetCells.nth(1)).toHaveText("2001:db8::/35");
+  });
 });

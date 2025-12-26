@@ -189,6 +189,36 @@ function getChildSubnet(bytes, prefix, index) {
 }
 
 /**
+ * Calculate the address of a child subnet at a specific target prefix
+ * @param {Uint8Array} bytes - 16-byte array of the parent network address
+ * @param {number} prefix - Current prefix length
+ * @param {number} targetPrefix - Target prefix length
+ * @param {number} index - Child index (0-based)
+ * @returns {Uint8Array} 16-byte array of the child subnet address
+ */
+function getChildSubnetAtTarget(bytes, prefix, targetPrefix, index) {
+  const result = new Uint8Array(bytes);
+
+  // Convert index to a value we can add to the address
+  let bitValue = BigInt(0);
+  for (let i = 0; i < 16; i++) {
+    bitValue = (bitValue << BigInt(8)) | BigInt(bytes[i]);
+  }
+
+  // Add the index shifted to the target bit position
+  const shift = BigInt(128 - targetPrefix);
+  bitValue = bitValue | (BigInt(index) << shift);
+
+  // Convert back to bytes
+  for (let i = 15; i >= 0; i--) {
+    result[i] = Number(bitValue & BigInt(0xff));
+    bitValue = bitValue >> BigInt(8);
+  }
+
+  return result;
+}
+
+/**
  * Calculate the number of subnets contained within a prefix
  * @param {number} prefix - Prefix length
  * @returns {string} Formatted count string (e.g., "256 /48s" or "Host Subnet")
@@ -228,6 +258,46 @@ function compareCIDR(a, b) {
 }
 
 /**
+ * Split a subnet into child subnets at the specified target prefix
+ * @param {string} cidr - CIDR notation of the subnet to split
+ * @param {number|null} targetPrefix - Target prefix length, or null for nibble-aligned (default)
+ * @returns {void}
+ */
+function splitSubnet(cidr, targetPrefix = null) {
+  const [addr, prefix] = cidr.split("/");
+  const prefixNum = parseInt(prefix);
+
+  if (prefixNum >= 64) return; // Cannot split /64
+
+  const bytes = parseIPv6(addr);
+
+  // Determine target prefix (nibble-aligned by default)
+  let target = targetPrefix;
+  if (target === null) {
+    const isAligned = prefixNum % 4 === 0;
+    target = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
+  }
+
+  if (target <= prefixNum || target > 64) return; // Invalid target
+
+  const bitsToSplit = target - prefixNum;
+  const numChildren = Math.pow(2, bitsToSplit);
+
+  const node = getSubnetNode(cidr);
+
+  // Generate children at the target prefix
+  for (let i = 0; i < numChildren; i++) {
+    const childBytes = getChildSubnetAtTarget(bytes, prefixNum, target, i);
+    const childAddr = formatIPv6(childBytes);
+    const childCidr = `${childAddr}/${target}`;
+    node[childCidr] = { _note: "", _color: "" };
+  }
+
+  saveState();
+  render();
+}
+
+/**
  * Get or create a subnet node in the tree structure
  * @param {string} cidr - CIDR notation string (e.g., "3fff::/24")
  * @returns {Object} Subnet node object with _note and _color properties
@@ -250,40 +320,6 @@ function isSplit(cidr) {
 
   const keys = Object.keys(node).filter((k) => !k.startsWith("_"));
   return keys.length > 0;
-}
-
-/**
- * Split a subnet into child subnets at the next nibble boundary
- * @param {string} cidr - CIDR notation of the subnet to split
- * @returns {void}
- */
-function splitSubnet(cidr) {
-  const [addr, prefix] = cidr.split("/");
-  const prefixNum = parseInt(prefix);
-
-  if (prefixNum >= 64) return; // Cannot split /64
-
-  const bytes = parseIPv6(addr);
-
-  // Calculate next nibble boundary
-  // If already on a nibble boundary, go to the next one (+4)
-  const isAligned = prefixNum % 4 === 0;
-  const nextNibble = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
-  const bitsToNextNibble = nextNibble - prefixNum;
-  const numChildren = Math.pow(2, bitsToNextNibble);
-
-  const node = getSubnetNode(cidr);
-
-  // Generate children at the next nibble boundary
-  for (let i = 0; i < numChildren; i++) {
-    const childBytes = getChildSubnet(bytes, prefixNum, i);
-    const childAddr = formatIPv6(childBytes);
-    const childCidr = `${childAddr}/${nextNibble}`;
-    node[childCidr] = { _note: "", _color: "" };
-  }
-
-  saveState();
-  render();
 }
 
 /**
@@ -455,18 +491,51 @@ function render() {
     // Split button column
     const splitTd = document.createElement("td");
     splitTd.className = "button-cell";
-    const splitBtn = document.createElement("button");
-    splitBtn.className = "split-button";
+
+    const splitContainer = document.createElement("div");
+    splitContainer.className = "split-container";
+
+    const splitSelect = document.createElement("select");
+    splitSelect.className = "split-select";
+
     const isAligned = row.prefix % 4 === 0;
     const nextNibble = isAligned
       ? row.prefix + 4
       : Math.ceil(row.prefix / 4) * 4;
-    const numChildren = Math.pow(2, nextNibble - row.prefix);
-    splitBtn.textContent = isAligned ? `/${row.prefix}` : `→/${nextNibble}`;
-    splitBtn.title = `Split this /${row.prefix} network into ${numChildren} smaller /${nextNibble} subnets`;
+
+    const autoOption = document.createElement("option");
+    autoOption.value = "auto";
+    autoOption.textContent = `Auto (→/${nextNibble})`;
+    autoOption.style.fontWeight = "bold";
+    splitSelect.appendChild(autoOption);
+
+    for (let p = row.prefix + 1; p <= 64; p++) {
+      if (p === nextNibble) continue;
+      const numChildren = Math.pow(2, p - row.prefix);
+      if (numChildren > 1024) continue;
+
+      const option = document.createElement("option");
+      option.value = p.toString();
+      option.textContent = `→/${p}`;
+      splitSelect.appendChild(option);
+    }
+
+    splitSelect.disabled = row.prefix >= 64 || !row.isLeaf;
+    splitContainer.appendChild(splitSelect);
+
+    const splitBtn = document.createElement("button");
+    splitBtn.className = "split-button";
+    splitBtn.textContent = "Split";
     splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
-    splitBtn.addEventListener("click", () => splitSubnet(row.cidr));
-    splitTd.appendChild(splitBtn);
+    splitBtn.addEventListener("click", () => {
+      const selectedValue = splitSelect.value;
+      const targetPrefix =
+        selectedValue === "auto" ? null : parseInt(selectedValue);
+      splitSubnet(row.cidr, targetPrefix);
+    });
+    splitContainer.appendChild(splitBtn);
+
+    splitTd.appendChild(splitContainer);
     tr.appendChild(splitTd);
 
     // Join button columns (one per ancestry level)

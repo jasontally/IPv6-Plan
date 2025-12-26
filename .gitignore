@@ -1,1 +1,35 @@
 .DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output
+.vite/
+
+# Test results
+playwright-report/
+test-results/
+coverage/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp

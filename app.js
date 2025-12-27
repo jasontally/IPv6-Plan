@@ -453,7 +453,7 @@ function render() {
     const subnetTd = document.createElement("td");
     subnetTd.className = "subnet-cell";
     subnetTd.textContent = row.cidr;
-    subnetTd.style.paddingLeft = `${row.depth * 20 + 8}px`;
+    subnetTd.style.paddingLeft = `${row.depth * 12 + 8}px`;
     tr.appendChild(subnetTd);
 
     // Contains column

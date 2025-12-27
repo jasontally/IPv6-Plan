@@ -1,6 +1,6 @@
 /**
  * Vitest Configuration
- * Copyright (c) 2024 Jason Tally and contributors
+ * Copyright (c) 2025 Jason Tally and contributors
  * SPDX-License-Identifier: MIT
  */
 

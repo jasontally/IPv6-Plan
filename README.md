@@ -125,7 +125,7 @@ Created by [Jason Tally](https://JasonTally.com) with the help of [opencode.ai](
 
 MIT License
 
-Copyright (c) 2024 Jason Tally and contributors
+Copyright (c) 2025 Jason Tally and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

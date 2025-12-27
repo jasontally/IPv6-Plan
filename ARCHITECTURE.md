@@ -2,7 +2,7 @@
 
 This document explains the core data structures, algorithms, and architecture of the IPv6 Subnet Planner.
 
-**Copyright (c) 2024 Jason Tally and contributors** - SPDX-License-Identifier: MIT
+**Copyright (c) 2025 Jason Tally and contributors** - SPDX-License-Identifier: MIT
 
 ## Overview
 

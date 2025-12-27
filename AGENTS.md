@@ -2,7 +2,7 @@
 
 This file contains guidance for LLM agents working on the IPv6 Subnet Planner codebase.
 
-**Copyright (c) 2024 Jason Tally and contributors** - SPDX-License-Identifier: MIT
+**Copyright (c) 2025 Jason Tally and contributors** - SPDX-License-Identifier: MIT
 
 ## Project Overview
 

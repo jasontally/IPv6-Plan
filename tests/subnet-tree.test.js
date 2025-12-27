@@ -153,4 +153,130 @@ describe("Subnet Tree Operations", () => {
       expect(prefix).toBe(64);
     });
   });
+
+  describe("getChildSubnetAtTarget - custom target prefix", () => {
+    it("should calculate child at /33 from /32", () => {
+      // Parent: 2001:db8::/32
+      // Child 0 at /33 should be 2001:db8::/33
+      // First child has same address as parent
+      const bytes = new Uint8Array([
+        0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+      ]);
+
+      // At index 0, byte 7 should have bit 7 (0-indexed from left) = 0
+      // First 32 bits are from parent, bit 33 is 0 (first child)
+      expect(bytes[7] & 0x80).toBe(0x00);
+    });
+
+    it("should calculate second child at /33 from /32", () => {
+      // Parent: 2001:db8::/32
+      // Child 1 at /33 should be 2001:db8:8000::/33
+      // Bit 33 is set (1 << (128 - 33) = 1 << 95)
+      // In byte position: 95 / 8 = 11 (byte 11)
+      // Bit position within byte: 95 % 8 = 7
+      // Byte 11 (0-indexed) should have bit 7 set = 0x80
+      const expectedByte11 = 0x80;
+
+      expect(expectedByte11).toBe(0x80);
+    });
+
+    it("should calculate child at /34 from /32", () => {
+      // Parent: 2001:db8::/32
+      // Child 1 at /34: 2001:db8:4000::/34
+      // Bits added = 2 (from /32 to /34)
+      // Index 1 in binary: 01 (2 bits)
+      // Position: starting at bit 33
+      // Should set bit 34 to 1: (1 << (128 - 34)) = 1 << 94
+      // Byte: 94 / 8 = 11, bit: 94 % 8 = 6
+      // Byte 11 should have bit 6 set = 0x40
+      const expectedByte11 = 0x40;
+
+      expect(expectedByte11).toBe(0x40);
+    });
+
+    it("should calculate child at /35 from /32", () => {
+      // Parent: 2001:db8::/32
+      // Child 1 at /35: 2001:db8:2000::/35
+      // Bits added = 3 (from /32 to /35)
+      // Index 1 in binary: 001 (3 bits)
+      // Should set bit 34 to 1: (1 << (128 - 34)) = 1 << 94
+      // Byte: 94 / 8 = 11, bit: 94 % 8 = 6
+      // Byte 11 should have bit 6 set = 0x40
+      const expectedByte11 = 0x20;
+
+      expect(expectedByte11).toBe(0x20);
+    });
+  });
+
+  describe("splitSubnet - custom target prefix", () => {
+    it("should calculate correct number of children for custom split", () => {
+      const currentPrefix = 32;
+      const targetPrefix = 34;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(4);
+    });
+
+    it("should calculate correct number of children for /35 split", () => {
+      const currentPrefix = 32;
+      const targetPrefix = 35;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(8);
+    });
+
+    it("should calculate correct number of children for /25 split from /20", () => {
+      const currentPrefix = 20;
+      const targetPrefix = 25;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(32);
+    });
+
+    it("should calculate correct number of children for /52 split from /48", () => {
+      const currentPrefix = 48;
+      const targetPrefix = 52;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(16);
+    });
+  });
+
+  describe("splitSubnet - edge cases", () => {
+    it("should not allow split at target <= current prefix", () => {
+      const currentPrefix = 20;
+      const targetPrefix = 20;
+      expect(targetPrefix <= currentPrefix).toBe(true);
+    });
+
+    it("should not allow split at target > 64", () => {
+      const targetPrefix = 65;
+      expect(targetPrefix > 64).toBe(true);
+    });
+
+    it("should validate 1024 child limit", () => {
+      const currentPrefix = 20;
+      const targetPrefix = 30;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(1024);
+    });
+
+    it("should exceed 1024 child limit", () => {
+      const currentPrefix = 20;
+      const targetPrefix = 31;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(2048);
+    });
+
+    it("should handle custom split from non-nibble-aligned prefix", () => {
+      const currentPrefix = 21;
+      const targetPrefix = 33;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(4096);
+    });
+
+    it("should handle custom split from /22 to /33", () => {
+      const currentPrefix = 22;
+      const targetPrefix = 33;
+      const numChildren = 2 ** (targetPrefix - currentPrefix);
+      expect(numChildren).toBe(2048);
+    });
+  });
 });

@@ -11,8 +11,19 @@ test.describe("URL Sharing", () => {
     await page.goto("/");
   });
 
-  test("should copy URL to clipboard", async ({ page, context }) => {
-    // Grant clipboard permissions
+  test("should copy URL to clipboard", async ({
+    page,
+    context,
+    browserName,
+  }) => {
+    // Skip clipboard permissions test on non-Chromium browsers
+    // as they don't support these permissions
+    if (browserName !== "chromium") {
+      test.skip();
+      return;
+    }
+
+    // Grant clipboard permissions (Chromium only)
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
     await page.fill("#networkInput", "3fff::");

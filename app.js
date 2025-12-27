@@ -332,13 +332,10 @@ function joinSubnet(cidr, targetPrefix) {
   const [addr, currentPrefix] = cidr.split("/");
   const currentPrefixNum = parseInt(currentPrefix);
 
-  // Find parent CIDR
-  let parentCidr = cidr;
-  for (let p = currentPrefixNum - 4; p >= targetPrefix; p -= 4) {
-    const bytes = parseIPv6(addr);
-    const masked = applyPrefix(bytes, p);
-    parentCidr = `${formatIPv6(masked)}/${p}`;
-  }
+  // Find parent CIDR at the target prefix
+  const bytes = parseIPv6(addr);
+  const masked = applyPrefix(bytes, targetPrefix);
+  const parentCidr = `${formatIPv6(masked)}/${targetPrefix}`;
 
   // Remove all children from parent node
   const node = getSubnetNode(parentCidr);

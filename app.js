@@ -853,3 +853,51 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+// Export functions for testing (only in Node.js environment)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    parseIPv6,
+    formatIPv6,
+    applyPrefix,
+    getChildSubnet,
+    getChildSubnetAtTarget,
+    getSubnetCount,
+    compareCIDR,
+    splitSubnet,
+    getSubnetNode,
+    isSplit,
+    joinSubnet,
+    saveState,
+    loadState,
+    loadNetwork,
+    loadDocPrefix,
+    shareURL,
+    exportCSV,
+    populatePrefixSelect,
+    COLORS,
+  };
+}
+
+// ES6 export for modern import syntax
+export const exportedForTesting = {
+  parseIPv6,
+  formatIPv6,
+  applyPrefix,
+  getChildSubnet,
+  getChildSubnetAtTarget,
+  getSubnetCount,
+  compareCIDR,
+  splitSubnet,
+  getSubnetNode,
+  isSplit,
+  joinSubnet,
+  saveState,
+  loadState,
+  loadNetwork,
+  loadDocPrefix,
+  shareURL,
+  exportCSV,
+  populatePrefixSelect,
+  COLORS,
+};

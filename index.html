@@ -346,16 +346,17 @@
 
     <div class="input-form">
       <div class="input-group">
-        <label>Network:</label>
+        <label for="networkInput">Network:</label>
         <input
           type="text"
           id="networkInput"
           value="3fff::"
           placeholder="Enter IPv6 address"
+          aria-label="IPv6 network address"
         />
 
-        <label>Prefix:</label>
-        <select id="prefixSelect"></select>
+        <label for="prefixSelect">Prefix:</label>
+        <select id="prefixSelect" aria-label="Prefix length"></select>
 
         <button onclick="loadNetwork()">Go</button>
         <button class="share-button" onclick="shareURL()">Share</button>
@@ -419,8 +420,13 @@
           </li>
           <li>
             <strong>Custom Split Targets:</strong> Use the dropdown next to the
-            Split button to select any target prefix for geographical
-            denomination models or specialized addressing schemes.
+            Split button to select any target prefix for
+            <a
+              href="https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline"
+              target="_blank"
+              >geographical denomination models</a
+            >
+            or specialized addressing schemes.
           </li>
           <li>
             <strong>Join Subnets:</strong> Click red "Join" button to merge
@@ -490,7 +496,7 @@
         class="footer-section"
         style="text-align: center; color: #999; font-size: 12px"
       >
-        Version 0.5
+        Version 0.5.1
       </div>
     </div>
 

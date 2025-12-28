@@ -12,5 +12,20 @@ export default defineConfig({
     environment: "jsdom",
     include: ["tests/*.test.js"],
     exclude: ["tests/e2e/**", "**/node_modules/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "tests/**",
+        "node_modules/**",
+        "**/*.test.js",
+        "**/*.spec.js",
+        "index.html",
+      ],
+      statements: 80,
+      branches: 75,
+      functions: 80,
+      lines: 80,
+    },
   },
 });

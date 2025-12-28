@@ -9,14 +9,14 @@ A web-based tool for hierarchically planning and documenting IPv6 address space 
 
 ## Overview
 
-This tool helps network engineers and administrators plan IPv6 address space by visually splitting and organizing subnets. It's designed around the concept of nibble-aligned (4-bit boundary) subnet planning by default, making it easy to hierarchically divide address space and document allocations. It also supports custom split targets for geographical denomination models.
+This tool helps network engineers and administrators plan IPv6 address space by visually splitting and organizing subnets. It's designed around the concept of nibble-aligned (4-bit boundary) subnet planning by default, making it easy to hierarchically divide address space and document allocations. It also supports custom split targets for [geographical denomination models](https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline).
 
 ## Features
 
 - **Flexible Initial Prefix**: Accepts any prefix length from /16 to /64, including non-nibble-aligned allocations (e.g., /21, /23, /47) to match real-world RIR assignments
 - **Nibble-Aligned Splitting (Default)**: All subnets split to the next 4-bit boundary, creating 2-16 child subnets depending on the current prefix
   - /20 → 16 /24 subnets, /21 → 8 /24 subnets, /22 → 4 /24 subnets, /23 → 2 /24 subnets
-- **Custom Split Targets**: Select any target prefix from current+1 to /64 for geographical denomination models or specialized addressing schemes
+- **Custom Split Targets**: Select any target prefix from current+1 to /64 for [geographical denomination models](https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline) or specialized addressing schemes
 - **Prefix Range**: Supports /16 to /64 prefix lengths, with /64 as the minimum assignable subnet
 - **Location-Based Planning**: Shows count of /48s (typical site/location size) for large allocations and /64s (minimum subnet size) for location-specific planning
 - **Visual Hierarchy**: Join buttons span multiple rows to clearly show parent-child subnet relationships
@@ -51,7 +51,7 @@ Splitting a subnet divides it into child subnets. By default, it splits to the n
 - `3fff::/22` splits into 4 /24s: `3fff::/24`, `3fff:100::/24`, `3fff:200::/24`, `3fff:300::/24`
 - `3fff::/23` splits into 2 /24s: `3fff::/24`, `3fff:100::/24`
 
-**Custom split targets** (for geographical denomination models):
+**Custom split targets** (for [geographical denomination models](https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline)):
 
 Select a specific target prefix from the dropdown next to the Split button:
 
@@ -59,7 +59,7 @@ Select a specific target prefix from the dropdown next to the Split button:
 - `2001:db8::/32` → target `/37` creates 32 subnets for district-level allocation
 - `2001:db8:1::/44` → target `/55` creates 2048 subnets for ToR switches
 
-Use custom targets to implement geographical denomination models (e.g., /34 for zones, /37 for districts) while keeping nibble-alignment for network layer subnets.
+Use custom targets to implement [geographical denomination models](https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline) (e.g., /34 for zones, /37 for districts) while keeping nibble-alignment for network layer subnets.
 
 ### Join Operation
 
@@ -110,7 +110,7 @@ Tested on:
 
 This ensures all split subnets align on hexadecimal digit boundaries for easy readability while accepting non-aligned initial allocations.
 
-**Splitting (Custom Target)**: Select any target prefix from current+1 to /64 via dropdown. This enables geographical denomination models where administrative layers use non-nibble-aligned prefixes (e.g., /34 for zones, /37 for districts) while network layer subnets remain nibble-aligned for easier management. Options are limited to creating ≤1024 children to prevent performance issues.
+**Splitting (Custom Target)**: Select any target prefix from current+1 to /64 via dropdown. This enables [geographical denomination models](https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline) where administrative layers use non-nibble-aligned prefixes (e.g., /34 for zones, /37 for districts) while network layer subnets remain nibble-aligned for easier management. Options are limited to creating ≤1024 children to prevent performance issues.
 
 ### Address Sorting
 

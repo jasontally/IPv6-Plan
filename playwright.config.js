@@ -36,5 +36,6 @@ export default defineConfig({
   webServer: {
     command: "npx serve . -p 8081",
     port: 8081,
+    reuseExistingServer: !process.env.CI,
   },
 });

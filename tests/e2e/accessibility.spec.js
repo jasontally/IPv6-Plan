@@ -9,11 +9,8 @@ import { test, expect } from "@playwright/test";
 test.describe("Accessibility (a11y)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    // Wait for prefixSelect to be populated by JavaScript
-    await page.waitForFunction(() => {
-      const select = document.getElementById("prefixSelect");
-      return select && select.options.length > 0;
-    });
+    // Wait for the page to be ready - Playwright's auto-waiting handles the rest
+    await page.waitForLoadState("domcontentloaded");
   });
 
   test("should have proper HTML5 structure", async ({ page }) => {
@@ -78,12 +75,15 @@ test.describe("Accessibility (a11y)", () => {
     const headers = page.locator("#subnetTable th");
     const headerTexts = await headers.allTextContents();
 
-    expect(headerTexts).toContain("Subnet");
-    expect(headerTexts).toContain("Contains");
-    expect(headerTexts).toContain("Note");
-    expect(headerTexts).toContain("Color");
-    expect(headerTexts).toContain("Split");
-    expect(headerTexts).toContain("Join");
+    // Normalize whitespace in header texts
+    const normalizedTexts = headerTexts.map((t) => t.trim());
+
+    expect(normalizedTexts).toContain("Subnet");
+    expect(normalizedTexts).toContain("Contains");
+    expect(normalizedTexts).toContain("Note");
+    expect(normalizedTexts).toContain("Color");
+    expect(normalizedTexts).toContain("Split");
+    expect(normalizedTexts).toContain("Join");
   });
 
   test("buttons should have accessible labels", async ({ page }) => {
@@ -177,7 +177,8 @@ test.describe("Accessibility (a11y)", () => {
     const exportBtn = page.locator('button:has-text("Export CSV")');
     await expect(exportBtn).toBeVisible();
 
-    const docBtn = page.locator('button:has-text("RFC")');
+    // There are two RFC buttons (doc-button), verify at least one is visible
+    const docBtn = page.locator('button:has-text("RFC")').first();
     await expect(docBtn).toBeVisible();
   });
 
@@ -197,10 +198,7 @@ test.describe("Accessibility (a11y)", () => {
     // Test on mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
-    await page.waitForFunction(() => {
-      const select = document.getElementById("prefixSelect");
-      return select && select.options.length > 0;
-    });
+    await page.waitForLoadState("domcontentloaded");
 
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
@@ -213,19 +211,16 @@ test.describe("Accessibility (a11y)", () => {
     await expect(inputForm).toBeVisible();
   });
 
-  test("split select should have accessible label via aria", async ({
-    page,
-  }) => {
+  test("split select should be focusable via keyboard", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
     await page.click('button:has-text("Go")');
 
     const splitSelect = page.locator(".split-select").first();
 
-    // Should be accessible via keyboard
+    // Should be focusable via keyboard
     await splitSelect.focus();
-    const focused = page.locator(":focus");
-    await expect(focused).toBe(splitSelect);
+    await expect(splitSelect).toBeFocused();
   });
 
   test("disabled buttons should indicate disabled state", async ({ page }) => {

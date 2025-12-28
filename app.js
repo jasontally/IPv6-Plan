@@ -854,33 +854,14 @@ function init() {
 
 document.addEventListener("DOMContentLoaded", init);
 
-// Export functions for testing (only in Node.js environment)
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    parseIPv6,
-    formatIPv6,
-    applyPrefix,
-    getChildSubnet,
-    getChildSubnetAtTarget,
-    getSubnetCount,
-    compareCIDR,
-    splitSubnet,
-    getSubnetNode,
-    isSplit,
-    joinSubnet,
-    saveState,
-    loadState,
-    loadNetwork,
-    loadDocPrefix,
-    shareURL,
-    exportCSV,
-    populatePrefixSelect,
-    COLORS,
-  };
-}
+// Attach functions to window for inline onclick handlers (required for ES6 modules)
+window.loadNetwork = loadNetwork;
+window.loadDocPrefix = loadDocPrefix;
+window.shareURL = shareURL;
+window.exportCSV = exportCSV;
 
-// ES6 export for modern import syntax
-export const exportedForTesting = {
+// ES6 exports for testing (works in both browser modules and Vitest)
+export {
   parseIPv6,
   formatIPv6,
   applyPrefix,

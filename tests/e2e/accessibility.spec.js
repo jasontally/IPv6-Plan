@@ -27,7 +27,9 @@ test.describe("Accessibility (a11y)", () => {
   });
 
   test("should have descriptive page title", async ({ page }) => {
-    await expect(page).toHaveTitle("IPv6 Subnet Planner");
+    await expect(page).toHaveTitle(
+      "IPv6 Network Planning Tool | Subnet Planner & Calculator",
+    );
   });
 
   test("should have proper heading hierarchy", async ({ page }) => {

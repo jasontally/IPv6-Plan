@@ -787,6 +787,14 @@ function showColorPicker(cidr, button) {
   currentColorTarget = cidr;
   currentColorButton = button;
 
+  // Remove any existing picker before creating new one
+  const existingPicker = document.querySelector(
+    "body > div[style*='position: fixed']",
+  );
+  if (existingPicker) {
+    document.body.removeChild(existingPicker);
+  }
+
   const picker = document.createElement("div");
   picker.style.position = "fixed";
   picker.style.background = "white";
@@ -826,7 +834,7 @@ function showColorPicker(cidr, button) {
 
   document.body.appendChild(picker);
 
-  // Close on outside click
+  // Close on outside click - use small delay to ensure DOM is painted
   setTimeout(() => {
     document.addEventListener(
       "click",
@@ -840,7 +848,7 @@ function showColorPicker(cidr, button) {
       },
       { once: true },
     );
-  }, 0);
+  }, 10);
 }
 
 /**

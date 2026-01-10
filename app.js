@@ -12,6 +12,11 @@ let rootPrefix = null;
 /** @type {Object<string, SubnetNode>} Subnet tree structure keyed by CIDR notation */
 let subnetTree = {};
 
+/** @type {string|null} Current target CIDR for color picker */
+let currentColorTarget = null;
+/** @type {HTMLButtonElement|null} Current button being colored */
+let currentColorButton = null;
+
 /** @type {string[]} Color palette for row highlighting */
 const COLORS = [
   "#FFE5E5", // Soft Pink
@@ -789,7 +794,7 @@ function showColorPicker(cidr, button) {
 
   // Remove any existing picker before creating new one
   const existingPicker = document.querySelector(
-    "body > div:has(button:has-text('Clear'))",
+    "body > div[data-color-picker='true']",
   );
   if (existingPicker) {
     document.body.removeChild(existingPicker);

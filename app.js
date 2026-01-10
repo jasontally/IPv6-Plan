@@ -12,6 +12,11 @@ let rootPrefix = null;
 /** @type {Object<string, SubnetNode>} Subnet tree structure keyed by CIDR notation */
 let subnetTree = {};
 
+/** @type {string|null} Current target CIDR for color picker */
+let currentColorTarget = null;
+/** @type {HTMLButtonElement|null} Current button being colored */
+let currentColorButton = null;
+
 /** @type {string[]} Color palette for row highlighting */
 const COLORS = [
   "#FFE5E5", // Soft Pink
@@ -787,7 +792,16 @@ function showColorPicker(cidr, button) {
   currentColorTarget = cidr;
   currentColorButton = button;
 
+  // Remove any existing picker before creating new one
+  const existingPicker = document.querySelector(
+    "body > div[data-color-picker='true']",
+  );
+  if (existingPicker) {
+    document.body.removeChild(existingPicker);
+  }
+
   const picker = document.createElement("div");
+  picker.dataset.colorPicker = "true";
   picker.style.position = "fixed";
   picker.style.background = "white";
   picker.style.border = "1px solid #ccc";
@@ -826,7 +840,7 @@ function showColorPicker(cidr, button) {
 
   document.body.appendChild(picker);
 
-  // Close on outside click
+  // Close on outside click - use small delay to ensure DOM is painted
   setTimeout(() => {
     document.addEventListener(
       "click",
@@ -840,7 +854,7 @@ function showColorPicker(cidr, button) {
       },
       { once: true },
     );
-  }, 0);
+  }, 10);
 }
 
 /**

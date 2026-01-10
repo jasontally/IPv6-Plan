@@ -189,6 +189,212 @@ function getChildSubnet(bytes, prefix, index) {
 }
 
 /**
+ * Calculate the address of a child subnet at a specific target prefix
+ * @param {Uint8Array} bytes - 16-byte array of the parent network address
+ * @param {number} prefix - Current prefix length
+ * @param {number} targetPrefix - Target prefix length
+ * @param {number} index - Child index (0-based)
+ * @returns {Uint8Array} 16-byte array of the child subnet address
+ */
+function getChildSubnetAtTarget(bytes, prefix, targetPrefix, index) {
+  const result = new Uint8Array(bytes);
+
+  // Convert address bytes to BigInt
+  let addressValue = BigInt(0);
+  for (let i = 0; i < 16; i++) {
+    addressValue = (addressValue << BigInt(8)) | BigInt(bytes[i]);
+  }
+
+  // Calculate shift: place index at the correct bit position for the split
+  // For nibble-aligned targets (e.g., /24, /28), use shift = 128 - target
+  // This puts child index at the start of the target prefix range
+  const shift = BigInt(128 - targetPrefix);
+  const indexValue = BigInt(index) << shift;
+  const totalValue = addressValue + indexValue;
+
+  // Convert back to bytes
+  let tempValue = totalValue;
+  for (let i = 15; i >= 0; i--) {
+    result[i] = Number(tempValue & BigInt(0xff));
+    tempValue = tempValue >> BigInt(8);
+  }
+
+  return result;
+}
+
+/**
+ * Calculate nibble boundaries between two prefix lengths
+ * @param {number} startPrefix - Starting prefix length
+ * @param {number} endPrefix - Ending prefix length
+ * @returns {number[]} Array of prefix lengths representing nibble boundaries
+ */
+function getNibbleBoundaries(startPrefix, endPrefix) {
+  if (startPrefix >= endPrefix) {
+    return [startPrefix];
+  }
+
+  const boundaries = [];
+  let current = Math.ceil(startPrefix / 4) * 4;
+
+  // Skip the start prefix if it's exactly on a nibble boundary
+  if (current === startPrefix) {
+    current += 4;
+  }
+
+  // Add all nibble boundaries up to but not including endPrefix
+  while (current < endPrefix) {
+    boundaries.push(current);
+    current += 4;
+  }
+
+  // Handle endPrefix
+  if (endPrefix === 30) {
+    // For /30 specifically, include it even though it's not nibble-aligned
+    // This is a common target prefix in subnet planning
+    boundaries.push(endPrefix);
+  } else if (endPrefix % 4 === 0) {
+    // Nibble-aligned: include it
+    boundaries.push(endPrefix);
+  } else {
+    // Not nibble-aligned: include target itself
+    boundaries.push(endPrefix);
+  }
+
+  return boundaries;
+}
+
+/**
+ * Create one level of child subnets under a parent
+ * @param {string} parentCidr - CIDR notation of the parent subnet
+ * @param {number} targetPrefix - Target prefix length for children
+ * @returns {string[]} Array of created child CIDRs
+ */
+function createIntermediateLevel(parentCidr, targetPrefix) {
+  const [addr, prefix] = parentCidr.split("/");
+  const prefixNum = parseInt(prefix);
+
+  if (targetPrefix <= prefixNum) {
+    return [];
+  }
+
+  const bytes = parseIPv6(addr);
+  if (!bytes) {
+    return [];
+  }
+
+  const bitsToSplit = targetPrefix - prefixNum;
+  const numChildren = Math.pow(2, bitsToSplit);
+
+  const parentNode = getSubnetNode(parentCidr);
+  const parentNote = parentNode._note;
+  const parentColor = parentNode._color;
+
+  const children = [];
+
+  for (let i = 0; i < numChildren; i++) {
+    // Use original bytes (not masked) for child address calculation
+    const childBytes = getChildSubnetAtTarget(
+      bytes,
+      prefixNum,
+      targetPrefix,
+      i,
+    );
+    const childAddr = formatIPv6(childBytes);
+    const childCidr = `${childAddr}/${targetPrefix}`;
+
+    // Create standalone node in tree with inherited metadata
+    if (!subnetTree[childCidr]) {
+      subnetTree[childCidr] = {
+        _note: parentNote,
+        _color: parentColor,
+      };
+    }
+
+    // Add child node to parent
+    parentNode[childCidr] = {
+      _note: parentNote,
+      _color: parentColor,
+    };
+
+    children.push(childCidr);
+  }
+
+  return children;
+}
+
+/**
+ * Recursively create all intermediate levels between parent and target
+ * @param {string} parentCidr - CIDR notation of the parent subnet
+ * @param {number} targetPrefix - Target prefix length for final level
+ * @returns {string[]} Array of all created child CIDRs at all levels
+ */
+function createIntermediateLevels(parentCidr, targetPrefix) {
+  const [addr, prefix] = parentCidr.split("/");
+  const prefixNum = parseInt(prefix);
+
+  const boundaries = getNibbleBoundaries(prefixNum, targetPrefix);
+
+  if (boundaries.length === 1) {
+    // Single boundary, create directly
+    return createIntermediateLevel(parentCidr, boundaries[0]);
+  }
+
+  // Multiple boundaries, create each level recursively
+  let allChildren = [];
+
+  function createLevelRecursive(
+    parentCidr,
+    boundaryIndex,
+    parentNote,
+    parentColor,
+  ) {
+    if (boundaryIndex >= boundaries.length) {
+      return;
+    }
+
+    const boundary = boundaries[boundaryIndex];
+    const children = createIntermediateLevel(parentCidr, boundary);
+
+    if (children.length > 0) {
+      allChildren = allChildren.concat(children);
+
+      // Get the parent node's note and color for the next level
+      const parentNode = getSubnetNode(parentCidr);
+      const note = parentNode._note || parentNote;
+      const color = parentNode._color || parentColor;
+
+      // Recursively create next level for each child
+      children.forEach((childCidr) => {
+        // Ensure the child node exists as a standalone node in the tree
+        // with the correct metadata before recursion
+        if (!subnetTree[childCidr]) {
+          subnetTree[childCidr] = { _note: note || "", _color: color || "" };
+        } else {
+          // If the child node already exists but has empty metadata, inherit from parent
+          if (subnetTree[childCidr]._note === "" && note !== "") {
+            subnetTree[childCidr]._note = note;
+          }
+          if (subnetTree[childCidr]._color === "" && color !== "") {
+            subnetTree[childCidr]._color = color;
+          }
+        }
+        createLevelRecursive(childCidr, boundaryIndex + 1, note, color);
+      });
+    }
+  }
+
+  // Get initial parent metadata
+  const initialParent = getSubnetNode(parentCidr);
+  const initialNote = initialParent._note;
+  const initialColor = initialParent._color;
+
+  // Start creating levels from the initial parent
+  createLevelRecursive(parentCidr, 0, initialNote, initialColor);
+
+  return allChildren;
+}
+
+/**
  * Calculate the number of subnets contained within a prefix
  * @param {number} prefix - Prefix length
  * @returns {string} Formatted count string (e.g., "256 /48s" or "Host Subnet")
@@ -228,6 +434,55 @@ function compareCIDR(a, b) {
 }
 
 /**
+ * Split a subnet into child subnets at the specified target prefix
+ * Creates intermediate levels at nibble boundaries when necessary (e.g., /20 to /28 creates /24 intermediate)
+ * @param {string} cidr - CIDR notation of the subnet to split
+ * @param {number|null} targetPrefix - Target prefix length, or null for nibble-aligned (default)
+ * @returns {void}
+ */
+function splitSubnet(cidr, targetPrefix = null) {
+  const [addr, prefix] = cidr.split("/");
+  const prefixNum = parseInt(prefix);
+
+  if (prefixNum >= 64) return;
+
+  const bytes = parseIPv6(addr);
+
+  // Determine target prefix (nibble-aligned by default)
+  let target = targetPrefix;
+  if (target === null) {
+    const isAligned = prefixNum % 4 === 0;
+    target = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
+  }
+
+  if (target <= prefixNum || target > 64) return;
+
+  const bitsToSplit = target - prefixNum;
+  const numChildren = Math.pow(2, bitsToSplit);
+
+  const node = getSubnetNode(cidr);
+
+  // Determine if we need intermediate levels
+  const boundaries = getNibbleBoundaries(prefixNum, target);
+
+  if (boundaries.length === 1 && boundaries[0] === target) {
+    // Single boundary at target, create children directly
+    for (let i = 0; i < numChildren; i++) {
+      const childBytes = getChildSubnetAtTarget(bytes, prefixNum, target, i);
+      const childAddr = formatIPv6(childBytes);
+      const childCidr = `${childAddr}/${target}`;
+      node[childCidr] = { _note: "", _color: "" };
+    }
+  } else {
+    // Multiple boundaries, create intermediate levels
+    createIntermediateLevels(cidr, target);
+  }
+
+  saveState();
+  render();
+}
+
+/**
  * Get or create a subnet node in the tree structure
  * @param {string} cidr - CIDR notation string (e.g., "3fff::/24")
  * @returns {Object} Subnet node object with _note and _color properties
@@ -253,41 +508,8 @@ function isSplit(cidr) {
 }
 
 /**
- * Split a subnet into child subnets at the next nibble boundary
- * @param {string} cidr - CIDR notation of the subnet to split
- * @returns {void}
- */
-function splitSubnet(cidr) {
-  const [addr, prefix] = cidr.split("/");
-  const prefixNum = parseInt(prefix);
-
-  if (prefixNum >= 64) return; // Cannot split /64
-
-  const bytes = parseIPv6(addr);
-
-  // Calculate next nibble boundary
-  // If already on a nibble boundary, go to the next one (+4)
-  const isAligned = prefixNum % 4 === 0;
-  const nextNibble = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
-  const bitsToNextNibble = nextNibble - prefixNum;
-  const numChildren = Math.pow(2, bitsToNextNibble);
-
-  const node = getSubnetNode(cidr);
-
-  // Generate children at the next nibble boundary
-  for (let i = 0; i < numChildren; i++) {
-    const childBytes = getChildSubnet(bytes, prefixNum, i);
-    const childAddr = formatIPv6(childBytes);
-    const childCidr = `${childAddr}/${nextNibble}`;
-    node[childCidr] = { _note: "", _color: "" };
-  }
-
-  saveState();
-  render();
-}
-
-/**
  * Join sibling subnets back to their parent network
+ * Recursively deletes all descendants of the parent (not just direct children)
  * @param {string} cidr - CIDR notation of a child subnet (used to identify the parent)
  * @param {number} targetPrefix - Target prefix length to join back to
  * @returns {void}
@@ -296,23 +518,35 @@ function joinSubnet(cidr, targetPrefix) {
   const [addr, currentPrefix] = cidr.split("/");
   const currentPrefixNum = parseInt(currentPrefix);
 
-  // Find parent CIDR
-  let parentCidr = cidr;
-  for (let p = currentPrefixNum - 4; p >= targetPrefix; p -= 4) {
-    const bytes = parseIPv6(addr);
-    const masked = applyPrefix(bytes, p);
-    parentCidr = `${formatIPv6(masked)}/${p}`;
-  }
+  // Find parent CIDR at the target prefix
+  const bytes = parseIPv6(addr);
+  const masked = applyPrefix(bytes, targetPrefix);
+  const parentCidr = `${formatIPv6(masked)}/${targetPrefix}`;
 
-  // Remove all children from parent node
-  const node = getSubnetNode(parentCidr);
-  const keys = Object.keys(node).filter((k) => !k.startsWith("_"));
-  keys.forEach((k) => {
-    delete node[k];
-  });
+  // Recursively delete all descendants from parent node
+  deleteDescendants(parentCidr);
 
   saveState();
   render();
+}
+
+/**
+ * Recursively delete all descendants of a subnet node
+ * Deletes both child references from parent and top-level entries from subnetTree
+ * @param {string} cidr - CIDR notation of the parent subnet
+ * @returns {void}
+ */
+function deleteDescendants(cidr) {
+  const node = subnetTree[cidr];
+  if (!node) return;
+
+  const children = Object.keys(node).filter((k) => !k.startsWith("_"));
+
+  children.forEach((childCidr) => {
+    deleteDescendants(childCidr);
+    delete node[childCidr];
+    delete subnetTree[childCidr];
+  });
 }
 
 /**
@@ -417,7 +651,7 @@ function render() {
     const subnetTd = document.createElement("td");
     subnetTd.className = "subnet-cell";
     subnetTd.textContent = row.cidr;
-    subnetTd.style.paddingLeft = `${row.depth * 20 + 8}px`;
+    subnetTd.style.paddingLeft = `${row.depth * 12 + 8}px`;
     tr.appendChild(subnetTd);
 
     // Contains column
@@ -432,9 +666,9 @@ function render() {
     noteInput.type = "text";
     noteInput.className = "note-input";
     noteInput.value = row.note;
-    noteInput.addEventListener("change", (e) => {
+    noteInput.addEventListener("input", () => {
       const node = getSubnetNode(row.cidr);
-      node._note = e.target.value;
+      node._note = noteInput.value;
       saveState();
     });
     noteTd.appendChild(noteInput);
@@ -455,18 +689,51 @@ function render() {
     // Split button column
     const splitTd = document.createElement("td");
     splitTd.className = "button-cell";
-    const splitBtn = document.createElement("button");
-    splitBtn.className = "split-button";
+
+    const splitContainer = document.createElement("div");
+    splitContainer.className = "split-container";
+
+    const splitSelect = document.createElement("select");
+    splitSelect.className = "split-select";
+
     const isAligned = row.prefix % 4 === 0;
     const nextNibble = isAligned
       ? row.prefix + 4
       : Math.ceil(row.prefix / 4) * 4;
-    const numChildren = Math.pow(2, nextNibble - row.prefix);
-    splitBtn.textContent = isAligned ? `/${row.prefix}` : `→/${nextNibble}`;
-    splitBtn.title = `Split this /${row.prefix} network into ${numChildren} smaller /${nextNibble} subnets`;
+
+    const autoOption = document.createElement("option");
+    autoOption.value = "auto";
+    autoOption.textContent = `Auto (→/${nextNibble})`;
+    autoOption.style.fontWeight = "bold";
+    splitSelect.appendChild(autoOption);
+
+    for (let p = row.prefix + 1; p <= 64; p++) {
+      if (p === nextNibble) continue;
+      const numChildren = Math.pow(2, p - row.prefix);
+      if (numChildren > 1024) continue;
+
+      const option = document.createElement("option");
+      option.value = p.toString();
+      option.textContent = `→/${p}`;
+      splitSelect.appendChild(option);
+    }
+
+    splitSelect.disabled = row.prefix >= 64 || !row.isLeaf;
+    splitContainer.appendChild(splitSelect);
+
+    const splitBtn = document.createElement("button");
+    splitBtn.className = "split-button";
+    splitBtn.textContent = "Split";
     splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
-    splitBtn.addEventListener("click", () => splitSubnet(row.cidr));
-    splitTd.appendChild(splitBtn);
+    splitBtn.addEventListener("click", () => {
+      const selectedValue = splitSelect.value;
+      const targetPrefix =
+        selectedValue === "auto" ? null : parseInt(selectedValue);
+      splitSubnet(row.cidr, targetPrefix);
+    });
+    splitContainer.appendChild(splitBtn);
+
+    splitTd.appendChild(splitContainer);
     tr.appendChild(splitTd);
 
     // Join button columns (one per ancestry level)
@@ -787,3 +1054,37 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+// Attach functions to window for inline onclick handlers (required for ES6 modules)
+window.loadNetwork = loadNetwork;
+window.loadDocPrefix = loadDocPrefix;
+window.shareURL = shareURL;
+window.exportCSV = exportCSV;
+
+// ES6 exports for testing (works in both browser modules and Vitest)
+export {
+  parseIPv6,
+  formatIPv6,
+  applyPrefix,
+  getChildSubnet,
+  getChildSubnetAtTarget,
+  getNibbleBoundaries,
+  createIntermediateLevel,
+  createIntermediateLevels,
+  getSubnetCount,
+  compareCIDR,
+  splitSubnet,
+  getSubnetNode,
+  isSplit,
+  joinSubnet,
+  deleteDescendants,
+  saveState,
+  loadState,
+  loadNetwork,
+  loadDocPrefix,
+  shareURL,
+  exportCSV,
+  populatePrefixSelect,
+  COLORS,
+  subnetTree,
+};

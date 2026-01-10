@@ -14,9 +14,8 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL: "http://localhost:8081",
     trace: "on-first-retry",
-    reuseExistingServer: true,
   },
 
   projects: [
@@ -35,7 +34,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npx serve . -p 8080",
-    port: 8080,
+    command: "npx serve . -p 8081",
+    port: 8081,
+    reuseExistingServer: !process.env.CI,
   },
 });

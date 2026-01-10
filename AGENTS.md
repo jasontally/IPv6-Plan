@@ -23,29 +23,21 @@ v6calc/
 ├── app.js                        # Application JavaScript (extracted from HTML)
 ├── README.md                     # User-facing documentation
 ├── ARCHITECTURE.md               # Technical architecture and algorithms
-├── IPv6-Subnet-Split-Join-Implementation-Plan.md  # Original implementation plan
+├── AGENTS.md                     # This file - LLM working instructions
 ├── package.json                  # Project configuration and test scripts
 ├── vitest.config.js              # Vitest configuration for unit tests
 ├── playwright.config.js            # Playwright configuration for E2E tests
-├── tests/
-│   ├── ipv6.test.js            # Unit tests for IPv6 utilities
-│   ├── subnet-tree.test.js       # Unit tests for tree operations
-│   ├── state.test.js            # Unit tests for state management
-│   └── e2e/
-│       ├── split-join.spec.js    # E2E tests for split/join
-│       └── url-export.spec.js     # E2E tests for URL/CSV
-└── AGENTS.md                     # This file - LLM working instructions
-```
-
-## File Structure
-
-```
-v6calc/
-├── index.html                    # Single file containing HTML, CSS, and JS
-├── README.md                     # User-facing documentation
-├── ARCHITECTURE.md               # Technical architecture and algorithms
-├── IPv6-Subnet-Split-Join-Implementation-Plan.md  # Original implementation plan
-└── AGENTS.md                     # This file - LLM working instructions
+└── tests/
+    ├── ipv6.test.js            # Unit tests for IPv6 utilities
+    ├── subnet-tree.test.js       # Unit tests for tree operations
+    ├── state.test.js            # Unit tests for state management
+    └── e2e/
+        ├── split-join.spec.js    # E2E tests for split/join
+        ├── url-export.spec.js     # E2E tests for URL/CSV
+        ├── initialization.spec.js  # E2E tests for app initialization
+        ├── error-scenarios.spec.js  # E2E tests for error handling
+        ├── accessibility.spec.js  # E2E tests for accessibility
+        └── stress.spec.js       # E2E tests for large trees
 ```
 
 ## Working with This Codebase
@@ -63,7 +55,7 @@ v6calc/
 
 3. **Verify the change is safe:**
    - Test the application manually after changes
-   - No automated tests exist (this is a limitation)
+   - Run automated tests: `npm test` and `npm run test:e2e`
 
 ### Code Conventions
 
@@ -157,7 +149,22 @@ numChildren = 2^(nextNibble - prefix)
 - Child 2: `3fff:200::/24`
 - ...
 
-**Always use `getChildSubnet(bytes, prefix, index)`** to calculate child addresses.
+**Always use `getChildSubnetAtTarget(bytes, prefix, targetPrefix, index)`** to calculate child addresses.
+
+**Intermediate Level Creation:**
+
+When splitting across multiple nibble boundaries (e.g., `/20 → /28`), the app automatically creates intermediate levels:
+
+- `/20 → /28` creates `/24` intermediate level, then `/28` children (273 rows total)
+- `/20 → /30` creates `/24 → /28 → /30` hierarchy (1297 rows total)
+- `/20 → /24` directly creates `/24` children (16 rows, no intermediates needed)
+
+**Key functions:**
+
+- `getNibbleBoundaries(startPrefix, endPrefix)` - Calculate intermediate nibble boundaries
+- `createIntermediateLevel(parentCidr, targetPrefix)` - Create one level of children
+- `createIntermediateLevels(parentCidr, targetPrefix)` - Recursively create all intermediate levels
+- `deleteDescendants(cidr)` - Recursively delete all descendants (used by joinSubnet)
 
 ### Row Span Calculation
 
@@ -272,6 +279,7 @@ Despite automated tests, manual testing is still recommended after changes:
    - Share/Export: Teal (`#0891B2`)
    - Split: Green (`#059669`)
    - Join: Red (`#DC2626`)
+9. **Not handling intermediate levels:** `/20 → /28` creates `/24` intermediates, use `createIntermediateLevels()`
 
 ## When Adding Features
 

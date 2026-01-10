@@ -94,14 +94,17 @@ Converts a 16-byte array to a compressed IPv6 string per RFC 5952.
 
 ### Subnet Splitting (`splitSubnet`)
 
-Divides a subnet into child subnets at the next nibble boundary (4-bit aligned).
+Divides a subnet into child subnets at a specified target prefix, creating intermediate levels at nibble boundaries when necessary.
 
 **Nibble Alignment Logic:**
 
-- If current prefix is already nibble-aligned (multiple of 4), split by adding 4 bits
+- If target is nibble-aligned (multiple of 4), splits to that level directly
   - `/20` → `/24` (creates 16 children)
   - `/24` → `/28` (creates 16 children)
-- If not nibble-aligned, split to next nibble boundary
+- If target crosses nibble boundaries, creates intermediate levels
+  - `/20` → `/28` (creates 16 `/24`s, then 256 `/28`s - 273 rows total)
+  - `/20` → `/30` (creates `/24 → /28 → /30` hierarchy - 1297 rows total)
+- If not nibble-aligned, splits to next nibble boundary
   - `/21` → `/24` (creates 8 children)
   - `/22` → `/24` (creates 4 children)
   - `/23` → `/24` (creates 2 children)
@@ -109,67 +112,149 @@ Divides a subnet into child subnets at the next nibble boundary (4-bit aligned).
 **Number of Children Formula:**
 
 ```
-numChildren = 2^(nextNibble - currentPrefix)
+numChildren = 2^(targetPrefix - currentPrefix)
 ```
 
 **Steps:**
 
 1. Parse CIDR to get address and prefix
 2. Validate prefix < 64 (cannot split /64)
-3. Calculate next nibble boundary and number of children
-4. For each child index (0 to numChildren-1):
-   - Use `getChildSubnet()` to calculate child address
-   - Create child CIDR by appending new prefix
-   - Add child to parent node in tree
-5. Call `saveState()` and `render()`
+3. Determine target prefix (nibble-aligned by default)
+4. Calculate nibble boundaries between current and target prefix
+5. If single boundary at target, create children directly
+6. If multiple boundaries, call `createIntermediateLevels()` to build hierarchy
+7. Call `saveState()` and `render()`
 
 **Critical Details:**
 
-- Child addresses are calculated at the next nibble boundary
+- Child addresses are calculated at the target prefix level using `getChildSubnetAtTarget()`
 - For `/20` splitting to `/24`, the second child is `3fff:100::/24`, NOT `3fff:1000::/24`
-- The increment is always at the nibble boundary position
+- Intermediate levels inherit parent `_note` and `_color` to all descendants
+- Splitting with custom target prefixes is supported (e.g., `/32 → /34`)
 
-### Child Subnet Calculation (`getChildSubnet`)
+### Child Subnet Calculation (`getChildSubnetAtTarget`)
 
-Calculates the address of a specific child subnet at the next nibble boundary.
+Calculates the address of a specific child subnet at a custom target prefix.
 
 **Steps:**
 
-1. Calculate next nibble boundary (multiple of 4)
-2. Convert 16-byte parent address to BigInt
+1. Convert 16-byte parent address to BigInt
+2. Calculate shift: `128 - targetPrefix`
 3. Shift child index to the correct bit position
-4. OR the shifted index with the parent address
+4. Add shifted index to the parent address
 5. Convert result back to 16-byte array
 
 **Bit Positioning:**
 
 ```
-shift = 128 - nextNibble
-childAddress = parentAddress | (index << shift)
+shift = 128 - targetPrefix
+childAddress = parentAddress + (index << shift)
 ```
 
 **Example:** Splitting `3fff::/20` to `/24`:
 
-- nextNibble = 24
+- targetPrefix = 24
 - shift = 128 - 24 = 104
-- Child index 1: `3fff::` | (1 << 104) = `3fff:100::`
+- Child index 1: `3fff::` + (1 << 104) = `3fff:100::`
+
+### Nibble Boundary Calculation (`getNibbleBoundaries`)
+
+Calculates intermediate nibble boundaries between two prefix lengths.
+
+**Steps:**
+
+1. If `startPrefix >= endPrefix`, return `[startPrefix]`
+2. Calculate first nibble boundary: `Math.ceil(startPrefix / 4) * 4`
+3. Add boundaries in steps of 4 until reaching `endPrefix`
+4. Include `endPrefix` even if not nibble-aligned
+
+**Examples:**
+
+- `getNibbleBoundaries(20, 28)` → `[24, 28]`
+- `getNibbleBoundaries(20, 30)` → `[24, 28, 30]`
+- `getNibbleBoundaries(24, 24)` → `[24]`
+- `getNibbleBoundaries(21, 28)` → `[24, 28]`
+
+### Intermediate Level Creation (`createIntermediateLevel`)
+
+Creates one level of child subnets under a parent, inheriting parent's note and color.
+
+**Steps:**
+
+1. Parse parent CIDR to get address and prefix
+2. Validate `targetPrefix > currentPrefix`
+3. Calculate number of children: `2^(targetPrefix - currentPrefix)`
+4. For each child index (0 to numChildren-1):
+   - Use `getChildSubnetAtTarget()` to calculate child address
+   - Create child node with inherited `_note` and `_color`
+   - Add child to parent node in tree
+5. Return array of created child CIDRs
+
+**Critical Details:**
+
+- Creates child nodes both in `subnetTree` and under parent
+- Inherits parent metadata to all children
+- Returns array of CIDRs for further processing
+
+### Recursive Intermediate Level Creation (`createIntermediateLevels`)
+
+Creates all intermediate levels between parent and target prefix recursively.
+
+**Steps:**
+
+1. Calculate nibble boundaries using `getNibbleBoundaries()`
+2. If single boundary, call `createIntermediateLevel()` directly
+3. If multiple boundaries:
+   - Create first level using `createIntermediateLevel()`
+   - For each child, recursively call to create next level
+   - Continue until target prefix is reached
+4. Return array of all created child CIDRs
+
+**Example:** `/20 → /30`:
+
+1. Boundaries: `[24, 28, 30]`
+2. Create 16 `/24`s under `/20`
+3. For each `/24`, create 16 `/28`s
+4. For each `/28`, create 4 `/30`s
+5. Total: 1 + 16 + 256 + 1024 = 1297 rows
 
 ### Subnet Joining (`joinSubnet`)
 
-Collapses all sibling subnets back into their parent network.
+Collapses all sibling subnets back into their parent network, recursively deleting all descendants.
 
 **Steps:**
 
 1. Parse child CIDR to get address and current prefix
 2. Calculate parent CIDR by masking address at target prefix
-3. Remove all non-underscore keys from parent node
+3. Call `deleteDescendants(parentCidr)` to recursively remove all descendants
 4. Call `saveState()` and `render()`
 
 **Critical Details:**
 
-- Destructive operation - removes all child annotations
+- Destructive operation - removes all child and descendant annotations
 - The parameter `cidr` is any child subnet used to identify the parent
 - `targetPrefix` is the prefix length to join back to (an ancestor)
+- Uses `deleteDescendants()` to handle multi-level deletions (e.g., `/20` with `/24`s that have `/28`s)
+
+### Recursive Descendant Deletion (`deleteDescendants`)
+
+Recursively deletes all children and grandchildren from a subnet node.
+
+**Steps:**
+
+1. Get the node for the given CIDR
+2. Find all child keys (non-underscore keys)
+3. For each child:
+   - Recursively call `deleteDescendants(childCidr)`
+   - Remove child reference from parent node
+   - Remove child node from `subnetTree`
+4. Returns nothing (modifies tree in place)
+
+**Critical Details:**
+
+- Does not delete the node itself, only descendants
+- Required for `joinSubnet()` when intermediate levels exist
+- Ensures clean deletion of entire subtree
 
 ### Row Span Calculation
 
@@ -256,7 +341,7 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 **User Actions → Function Calls:**
 
 - Click "Go" → `loadNetwork()`
-- Click "Split" → `splitSubnet(cidr)`
+- Click "Split" → `splitSubnet(cidr, targetPrefix)`
 - Click "Join" → `joinSubnet(cidr, targetPrefix)`
 - Note change → Update `node._note` → `saveState()`
 - Click color → `showColorPicker(cidr, button)`
@@ -301,7 +386,7 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 
 1. **Prefix Range:** Only /16 to /64 are valid (enforced in `loadNetwork`)
 2. **Minimum Subnet:** /64 cannot be split further
-3. **Nibble Alignment:** All splits go to the next nibble boundary (multiple of 4)
+3. **Nibble Alignment:** Splits can specify custom target prefixes; intermediate levels created at nibble boundaries when needed
 4. **Address Sorting:** Children are sorted numerically by IPv6 address, not string
 5. **RFC 5952 Compliance:** All addresses displayed in compressed form
 6. **State Persistence:** URL hash always reflects current state
@@ -309,9 +394,10 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 
 ## Common Pitfalls
 
-1. **Wrong Child Count:** Calculate as `2^(nextNibble - currentPrefix)`, don't assume 16
+1. **Wrong Child Count:** Calculate as `2^(targetPrefix - currentPrefix)`, don't assume 16
 2. **Wrong Address Increment:** Use nibble boundary, not full groups (`3fff:100::` not `3fff:1000::`)
 3. **String Sorting:** Always use `compareCIDR()` for numerical sorting
 4. **Missing Rowspan:** Join buttons must span all descendant rows
 5. **Expanded Addresses:** Never display expanded form, always use `formatIPv6()`
 6. **Over-validation:** Don't reject based on address type (GUA, ULA, link-local all valid)
+7. **Not Creating Intermediate Levels:** Splits crossing nibble boundaries must use `createIntermediateLevels()` (e.g., `/20 → /28` creates `/24` intermediates)

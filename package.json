@@ -1,6 +1,6 @@
 {
   "name": "ipv6-subnet-planner",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "A web-based tool for hierarchically planning and documenting IPv6 address space allocations",
   "main": "app.js",
   "type": "module",
@@ -32,5 +32,8 @@
     "jsdom": "^23.0.1",
     "prettier": "^3.1.1",
     "vitest": "^1.1.0"
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.3.0"
   }
 }

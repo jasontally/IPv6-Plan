@@ -249,23 +249,21 @@ test.describe("Split and Join Operations", () => {
     expect(has43).toBe(false);
   });
 
-  test("should split /20 into 32 /25 subnets", async ({ page }) => {
+  test("should split /20 into 32 /25 subnets with /24 intermediates", async ({
+    page,
+  }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
     await page.click('button:has-text("Go")');
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("25");
-
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
 
-    // Should show 33 rows (1 root + 32 children)
+    // Should show 49 rows (1 root + 16 /24 + 32 /25)
     const subnetCells = page.locator(".subnet-cell");
-    await expect(subnetCells).toHaveCount(33);
-
-    // First child should be at /25 prefix
-    await expect(subnetCells.nth(1)).toHaveText("3fff::/25");
+    await expect(subnetCells).toHaveCount(49);
   });
 
   test("should split /48 into 16 /52 subnets", async ({ page }) => {
@@ -405,6 +403,112 @@ test.describe("Split and Join Operations", () => {
     await splitBtn.click();
 
     // Verify split creates 1024 children at 1024 child limit
-    await expect(page.locator(".subnet-cell")).toHaveCount(1025);
+    // With intermediate /24s and /28s: 1 root + 8 /24 + 128 /28 + 1024 /31 = 1161
+    await expect(page.locator(".subnet-cell")).toHaveCount(1161);
+  });
+
+  test.describe("Intermediate Nibble-Level Splits", () => {
+    test("splits /20 to /28 showing /24 intermediates", async ({ page }) => {
+      await page.fill("#networkInput", "3fff::");
+      await page.selectOption("#prefixSelect", "20");
+      await page.click('button:has-text("Go")');
+
+      // Set note and color on /20
+      const rootNote = page.locator(".note-input").first();
+      await rootNote.fill("Data Center");
+
+      // Split to /28
+      const splitSelect = page.locator(".split-select").first();
+      await splitSelect.selectOption("28");
+      const splitBtn = page.locator(".split-button").first();
+      await splitBtn.click();
+
+      // Verify 16 /24 rows visible
+      await expect(page.locator(".subnet-cell")).toHaveCount(273);
+
+      // Verify /24 children exist
+      const firstTwentyFourCell = page.locator(".subnet-cell").nth(1);
+      await expect(firstTwentyFourCell).toHaveText("3fff::/24");
+
+      // Verify /28 children exist under /24
+      const firstTwentyEightCell = page.locator(".subnet-cell").nth(2);
+      await expect(firstTwentyEightCell).toHaveText("3fff::/28");
+
+      // Verify notes were inherited
+      const twentyFourNote = page.locator(".note-input").nth(1);
+      await expect(twentyFourNote).toHaveValue("Data Center");
+    });
+
+    test("splits /20 to /25 showing /24 intermediates", async ({ page }) => {
+      await page.fill("#networkInput", "3fff::");
+      await page.selectOption("#prefixSelect", "20");
+      await page.click('button:has-text("Go")');
+
+      // Split to /25
+      const splitSelect = page.locator(".split-select").first();
+      await splitSelect.selectOption("25");
+      const splitBtn = page.locator(".split-button").first();
+      await splitBtn.click();
+
+      // Verify 16 /24 rows + 32 /25 children = 49 total rows (including root)
+      await expect(page.locator(".subnet-cell")).toHaveCount(49);
+
+      // Verify /24 children exist
+      const firstTwentyFourCell = page.locator(".subnet-cell").nth(1);
+      await expect(firstTwentyFourCell).toHaveText("3fff::/24");
+
+      // Verify /25 children exist under /24
+      const firstTwentyFiveCell = page.locator(".subnet-cell").nth(2);
+      await expect(firstTwentyFiveCell).toHaveText("3fff::/25");
+    });
+
+    test("splits /20 to /30 showing /24 and /28 intermediates", async ({
+      page,
+    }) => {
+      await page.fill("#networkInput", "3fff::");
+      await page.selectOption("#prefixSelect", "20");
+      await page.click('button:has-text("Go")');
+
+      // Split to /30
+      const splitSelect = page.locator(".split-select").first();
+      await splitSelect.selectOption("30");
+      const splitBtn = page.locator(".split-button").first();
+      await splitBtn.click();
+
+      // Verify 16 /24 + 256 /28 + 1024 /30 = 1297 total rows (including root)
+      await expect(page.locator(".subnet-cell")).toHaveCount(1297);
+
+      // Verify hierarchy: /20 → /24 → /28 → /30
+      const firstTwentyFourCell = page.locator(".subnet-cell").nth(1);
+      await expect(firstTwentyFourCell).toHaveText("3fff::/24");
+
+      const firstTwentyEightCell = page.locator(".subnet-cell").nth(2);
+      await expect(firstTwentyEightCell).toHaveText("3fff::/28");
+
+      const firstThirtyCell = page.locator(".subnet-cell").nth(3);
+      await expect(firstThirtyCell).toHaveText("3fff::/30");
+    });
+
+    test("prevents split on already-split subnet", async ({ page }) => {
+      await page.fill("#networkInput", "3fff::");
+      await page.selectOption("#prefixSelect", "20");
+      await page.click('button:has-text("Go")');
+
+      // Split to /24
+      const splitBtn1 = page.locator(".split-button").first();
+      await splitBtn1.click();
+
+      // Verify /20 split button is now disabled
+      const rootSplitBtn = page.locator(".split-button").first();
+      await expect(rootSplitBtn).toBeDisabled();
+
+      // Split first /24 to /28
+      const splitBtn2 = page.locator(".split-button").nth(1);
+      await splitBtn2.click();
+
+      // Verify that /24 split button is now disabled
+      const twentyFourSplitBtn = page.locator(".split-button").nth(1);
+      await expect(twentyFourSplitBtn).toBeDisabled();
+    });
   });
 });

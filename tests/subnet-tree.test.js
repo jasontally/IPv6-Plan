@@ -10,28 +10,23 @@ import {
   getChildSubnet,
   getChildSubnetAtTarget,
   getSubnetCount,
+  getNibbleBoundaries,
+  createIntermediateLevel,
+  parseIPv6,
+  subnetTree,
 } from "../app.js";
-
-// Mock global state for testing
-let subnetTree = {};
-
-// Override getSubnetNode to use local subnetTree
-function mockGetSubnetNode(cidr) {
-  if (!subnetTree[cidr]) {
-    subnetTree[cidr] = { _note: "", _color: "" };
-  }
-  return subnetTree[cidr];
-}
 
 describe("Subnet Tree Operations", () => {
   beforeEach(() => {
-    subnetTree = {};
+    Object.keys(subnetTree).forEach((key) => {
+      delete subnetTree[key];
+    });
   });
 
   describe("getSubnetNode", () => {
     it("should create node if it does not exist", () => {
       const cidr = "3fff::/24";
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
 
       expect(node).toBeDefined();
       expect(node._note).toBe("");
@@ -42,15 +37,15 @@ describe("Subnet Tree Operations", () => {
       subnetTree["3fff::/24"] = { _note: "Test", _color: "#FF0000" };
       const cidr = "3fff::/24";
 
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
       expect(node._note).toBe("Test");
       expect(node._color).toBe("#FF0000");
     });
 
     it("should maintain node reference", () => {
       const cidr = "3fff::/24";
-      const node1 = mockGetSubnetNode(cidr);
-      const node2 = mockGetSubnetNode(cidr);
+      const node1 = getSubnetNode(cidr);
+      const node2 = getSubnetNode(cidr);
 
       expect(node1).toBe(node2);
     });
@@ -61,7 +56,7 @@ describe("Subnet Tree Operations", () => {
       subnetTree["3fff::/24"] = { _note: "", _color: "" };
       const cidr = "3fff::/24";
 
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
       const keys = Object.keys(node).filter((k) => !k.startsWith("_"));
       expect(keys.length).toBe(0);
     });
@@ -74,7 +69,7 @@ describe("Subnet Tree Operations", () => {
       };
       const cidr = "3fff::/20";
 
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
       const keys = Object.keys(node).filter((k) => !k.startsWith("_"));
       expect(keys.length).toBe(1);
     });
@@ -85,7 +80,7 @@ describe("Subnet Tree Operations", () => {
         _color: "#FF0000",
       };
 
-      const node = mockGetSubnetNode("3fff::/20");
+      const node = getSubnetNode("3fff::/20");
       const keys = Object.keys(node).filter((k) => !k.startsWith("_"));
       expect(keys.length).toBe(0);
     });
@@ -243,7 +238,7 @@ describe("Subnet Tree Operations", () => {
       const target = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
       const numChildren = Math.pow(2, target - prefixNum);
 
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
       // Add mock children
       for (let i = 0; i < numChildren; i++) {
         node[`child${i}`] = { _note: "", _color: "" };
@@ -257,7 +252,7 @@ describe("Subnet Tree Operations", () => {
       subnetTree["3fff::/24"] = { _note: "", _color: "" };
       const cidr = "3fff::/24";
 
-      const node = mockGetSubnetNode(cidr);
+      const node = getSubnetNode(cidr);
       for (let i = 0; i < 16; i++) {
         node[`child${i}`] = { _note: "", _color: "" };
       }
@@ -396,11 +391,11 @@ describe("Subnet Tree Operations", () => {
       };
 
       // Add first child
-      const root = mockGetSubnetNode("3fff::/20");
+      const root = getSubnetNode("3fff::/20");
       root["3fff::/24"] = { _note: "", _color: "" };
 
       // Add grandchild
-      const child = mockGetSubnetNode("3fff::/24");
+      const child = getSubnetNode("3fff::/24");
       child["3fff::/28"] = { _note: "", _color: "" };
 
       // Verify structure
@@ -411,6 +406,292 @@ describe("Subnet Tree Operations", () => {
         (k) => !k.startsWith("_"),
       );
       expect(grandchildKeys.length).toBe(1);
+    });
+  });
+
+  describe("getNibbleBoundaries", () => {
+    it("should return [24] for /20 to /24", () => {
+      const boundaries = getNibbleBoundaries(20, 24);
+      expect(boundaries).toEqual([24]);
+    });
+
+    it("should return [24, 28] for /20 to /28", () => {
+      const boundaries = getNibbleBoundaries(20, 28);
+      expect(boundaries).toEqual([24, 28]);
+    });
+
+    it("should return [24, 28] for /20 to /25", () => {
+      const boundaries = getNibbleBoundaries(20, 25);
+      expect(boundaries).toEqual([24, 25]);
+    });
+
+    it("should return [24, 28, 30] for /20 to /30", () => {
+      const boundaries = getNibbleBoundaries(20, 30);
+      expect(boundaries).toEqual([24, 28, 30]);
+    });
+
+    it("should return [28, 32] for /24 to /32", () => {
+      const boundaries = getNibbleBoundaries(24, 32);
+      expect(boundaries).toEqual([28, 32]);
+    });
+
+    it("should return [24] for /21 to /24", () => {
+      const boundaries = getNibbleBoundaries(21, 24);
+      expect(boundaries).toEqual([24]);
+    });
+
+    it("should return [24, 28] for /21 to /25", () => {
+      const boundaries = getNibbleBoundaries(21, 25);
+      expect(boundaries).toEqual([24, 25]);
+    });
+
+    it("should return [24, 28] for /21 to /28", () => {
+      const boundaries = getNibbleBoundaries(21, 28);
+      expect(boundaries).toEqual([24, 28]);
+    });
+  });
+
+  describe("splitSubnet with intermediate levels", () => {
+    beforeEach(() => {
+      // Clear all entries from subnetTree (already done by parent beforeEach)
+      // Note: subnetTree is imported from app.js and cleared in parent describe block
+    });
+
+    it("should create children with inherited note and color", () => {
+      const parent = getSubnetNode("3fff::/20");
+      parent._note = "Data Center";
+      parent._color = "#FF0000";
+
+      const children = createIntermediateLevel("3fff::/20", 24);
+
+      expect(children.length).toBe(16);
+
+      const child1 = parent[children[0]];
+      expect(child1._note).toBe("Data Center");
+      expect(child1._color).toBe("#FF0000");
+
+      const child2 = parent[children[1]];
+      expect(child2._note).toBe("Data Center");
+      expect(child2._color).toBe("#FF0000");
+    });
+
+    it("should create correct number of children", () => {
+      subnetTree["3fff::/20"] = { _note: "", _color: "" };
+
+      const children = createIntermediateLevel("3fff::/20", 24);
+
+      expect(children.length).toBe(16);
+    });
+
+    it("should create children at correct addresses", () => {
+      subnetTree["3fff::/20"] = { _note: "", _color: "" };
+
+      const children = createIntermediateLevel("3fff::/20", 24);
+
+      expect(children[0]).toBe("3fff::/24");
+      expect(children[1]).toBe("3fff:100::/24");
+      expect(children[2]).toBe("3fff:200::/24");
+    });
+  });
+
+  describe("splitSubnet with intermediate levels", () => {
+    beforeEach(() => {
+      // Clear all entries from subnetTree (already done by previous beforeEach)
+      // Note: subnetTree is imported from app.js and cleared in parent describe block
+    });
+
+    it("should split /20 to /24 directly (no intermediate)", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Root",
+        _color: "#FF0000",
+      };
+
+      const boundaries = getNibbleBoundaries(20, 24);
+      expect(boundaries).toEqual([24]);
+
+      const children = createIntermediateLevel("3fff::/20", 24);
+
+      expect(children.length).toBe(16);
+      expect(children[0]).toBe("3fff::/24");
+      expect(children[1]).toBe("3fff:100::/24");
+
+      const parent = getSubnetNode("3fff::/20");
+      const child1 = parent[children[0]];
+      expect(child1._note).toBe("Root");
+      expect(child1._color).toBe("#FF0000");
+    });
+
+    it("should split /20 to /28 with /24 intermediate", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Data Center",
+        _color: "#FF0000",
+      };
+
+      const boundaries = getNibbleBoundaries(20, 28);
+      expect(boundaries).toEqual([24, 28]);
+
+      const parent = subnetTree["3fff::/20"];
+      const twentyFourChildren = createIntermediateLevel("3fff::/20", 24);
+
+      expect(twentyFourChildren.length).toBe(16);
+
+      const twentyFourNode = getSubnetNode(twentyFourChildren[0]);
+      expect(twentyFourNode._note).toBe("Data Center");
+      expect(twentyFourNode._color).toBe("#FF0000");
+
+      const twentyEightChildren = createIntermediateLevel(
+        twentyFourChildren[0],
+        28,
+      );
+
+      expect(twentyEightChildren.length).toBe(16);
+      expect(twentyEightChildren[0]).toBe("3fff::/28");
+
+      const twentyEightNode = getSubnetNode(twentyEightChildren[0]);
+      expect(twentyEightNode._note).toBe("Data Center");
+      expect(twentyEightNode._color).toBe("#FF0000");
+    });
+
+    it("should split /20 to /25 with /24 intermediate", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Test",
+        _color: "#00FF00",
+      };
+
+      const boundaries = getNibbleBoundaries(20, 25);
+      expect(boundaries).toEqual([24, 25]);
+
+      const parent = subnetTree["3fff::/20"];
+      const twentyFourChildren = createIntermediateLevel("3fff::/20", 24);
+
+      expect(twentyFourChildren.length).toBe(16);
+
+      const twentyFourNode = getSubnetNode(twentyFourChildren[0]);
+      const twentyEightChildren = createIntermediateLevel(
+        twentyFourChildren[0],
+        28,
+      );
+
+      expect(twentyEightChildren.length).toBe(16);
+
+      expect(twentyFourNode._note).toBe("Test");
+      expect(twentyFourNode._color).toBe("#00FF00");
+
+      const twentyEightNode = getSubnetNode(twentyEightChildren[0]);
+      expect(twentyEightNode._note).toBe("Test");
+      expect(twentyEightNode._color).toBe("#00FF00");
+    });
+
+    it("should split /20 to /30 with /24 and /28 intermediates", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Test",
+        _color: "#0000FF",
+      };
+
+      const boundaries = getNibbleBoundaries(20, 30);
+      expect(boundaries).toEqual([24, 28, 30]);
+
+      const parent = subnetTree["3fff::/20"];
+      const twentyFourChildren = createIntermediateLevel("3fff::/20", 24);
+
+      expect(twentyFourChildren.length).toBe(16);
+
+      const twentyFourNode = getSubnetNode(twentyFourChildren[0]);
+      const twentyEightChildren = createIntermediateLevel(
+        twentyFourChildren[0],
+        28,
+      );
+
+      expect(twentyEightChildren.length).toBe(16);
+
+      const thirtyChildren = createIntermediateLevel(
+        twentyEightChildren[0],
+        30,
+      );
+
+      expect(thirtyChildren.length).toBe(4);
+      expect(thirtyChildren[0]).toBe("3fff::/30");
+      expect(thirtyChildren[1]).toBe("3fff:4::/30");
+      expect(thirtyChildren[2]).toBe("3fff:8::/30");
+      expect(thirtyChildren[3]).toBe("3fff:c::/30");
+
+      expect(twentyFourNode._note).toBe("Test");
+      expect(twentyFourNode._color).toBe("#0000FF");
+
+      const thirtyNode = getSubnetNode(thirtyChildren[0]);
+      expect(thirtyNode._note).toBe("Test");
+      expect(thirtyNode._color).toBe("#0000FF");
+    });
+
+    it("should handle /21 to /28 with /24 intermediate", () => {
+      subnetTree["3fff:e000::/21"] = {
+        _note: "Test",
+        _color: "#FF0000",
+      };
+
+      const boundaries = getNibbleBoundaries(21, 28);
+      expect(boundaries).toEqual([24, 28]);
+
+      const parent = subnetTree["3fff:e000::/21"];
+      const twentyFourChildren = createIntermediateLevel("3fff:e000::/21", 24);
+
+      expect(twentyFourChildren.length).toBe(8);
+      expect(twentyFourChildren[0]).toBe("3fff:e000::/24");
+      expect(twentyFourChildren[7]).toBe("3fff:e700::/24");
+
+      const twentyFourNode = getSubnetNode(twentyFourChildren[0]);
+      const twentyEightChildren = createIntermediateLevel(
+        twentyFourChildren[0],
+        28,
+      );
+
+      expect(twentyEightChildren.length).toBe(16);
+    });
+
+    it("should handle /24 to /32 with /28 intermediate", () => {
+      subnetTree["3fff::/24"] = {
+        _note: "Test",
+        _color: "#FF0000",
+      };
+
+      const boundaries = getNibbleBoundaries(24, 32);
+      expect(boundaries).toEqual([28, 32]);
+
+      const parent = subnetTree["3fff::/24"];
+      const twentyEightChildren = createIntermediateLevel("3fff::/24", 28);
+
+      expect(twentyEightChildren.length).toBe(16);
+
+      const twentyEightNode = getSubnetNode(twentyEightChildren[0]);
+      const thirtyTwoChildren = createIntermediateLevel(
+        twentyEightChildren[0],
+        32,
+      );
+
+      expect(thirtyTwoChildren.length).toBe(16);
+    });
+
+    it("should handle /24 to /32 with /28 intermediate", () => {
+      subnetTree["3fff::/24"] = {
+        _note: "Test",
+        _color: "#FF0000",
+      };
+
+      const boundaries = getNibbleBoundaries(24, 32);
+      expect(boundaries).toEqual([28, 32]);
+
+      const parent = subnetTree["3fff::/24"];
+      const twentyEightChildren = createIntermediateLevel("3fff::/24", 28);
+
+      expect(twentyEightChildren.length).toBe(16);
+
+      const twentyEightNode = subnetTree[twentyEightChildren[0]];
+      const thirtyTwoChildren = createIntermediateLevel(
+        twentyEightChildren[0],
+        32,
+      );
+
+      expect(thirtyTwoChildren.length).toBe(16);
     });
   });
 });

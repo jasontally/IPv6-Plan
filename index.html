@@ -15,11 +15,11 @@
     <!-- Primary SEO Meta Tags -->
     <meta
       name="description"
-      content="Free IPv6 network planning tool for subnet planner and calculator. Hierarchically divide IPv6 address space with our subnet planner. Plan, document, and visualize IPv6 subnets for network engineering."
+      content="IPv6 subnet planner and calculator. Plan address space, divide networks, and document allocations. Supports custom split targets and nibble-aligned planning for network engineering."
     />
     <meta
       name="keywords"
-      content="IPv6 network planning tools, IPv6 subnet planning tool, IPv6 subnet calculator, subnet planner, IPv6 address space planner, network planning tool"
+      content="IPv6 planner, IPv6 calculator, subnet planner, network planning tool, IPv6 subnet calculator, subnet planning tool, IPv6 address space planner, network engineering tools"
     />
     <meta name="author" content="Jason Tally" />
 
@@ -32,7 +32,7 @@
     />
     <meta
       property="og:description"
-      content="Free IPv6 network planning tool for subnet planner and calculator. Plan, document, and visualize your IPv6 address space hierarchy with our comprehensive subnet planner tool."
+      content="Plan IPv6 address space hierarchically. Divide subnets, add annotations, and share network configurations."
     />
     <meta property="og:image" content="" />
 
@@ -45,7 +45,7 @@
     />
     <meta
       property="twitter:description"
-      content="Free IPv6 network planning tool for subnet planner and calculator. Plan, document, and visualize your IPv6 address space hierarchy."
+      content="Plan IPv6 address space hierarchically. Divide subnets, add annotations, and share configurations."
     />
 
     <!-- Canonical URL -->
@@ -56,9 +56,8 @@
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "IPv6 Network Planning Tool",
-        "alternateName": "IPv6 Subnet Planner",
-        "description": "A web-based IPv6 network planning tool for subnet planner and calculator. Hierarchically plan, document, and visualize IPv6 address space allocations.",
+        "name": "IPv6 Subnet Planner & Calculator",
+        "description": "IPv6 subnet planner for network engineering. Calculate, divide, and document IPv6 address space allocations with hierarchical visualization.",
         "applicationCategory": "NetworkManagementApplication",
         "operatingSystem": "Web Browser",
         "browserRequirements": "HTML5, CSS3, JavaScript ES6+",
@@ -68,9 +67,9 @@
           "priceCurrency": "USD"
         },
         "featureList": [
-          "IPv6 subnet planner for hierarchical network planning",
+          "Hierarchical IPv6 subnet planner",
           "IPv6 subnet calculator with custom split targets",
-          "Visual subnet hierarchy display",
+          "Visual network planning tool",
           "Nibble-aligned subnet splitting",
           "Custom prefix support",
           "Subnet join operations",
@@ -78,11 +77,11 @@
           "Shareable URL state",
           "CSV export for subnet plans"
         ],
-        "keywords": "IPv6 network planning tools, IPv6 subnet planning tool, IPv6 subnet calculator, subnet planner, network planning tool"
+        "keywords": "IPv6 planner, IPv6 calculator, subnet planner, network planning tool, IPv6 subnet calculator, subnet planning tool"
       }
     </script>
 
-    <title>IPv6 Network Planning Tool | Subnet Planner & Calculator</title>
+    <title>IPv6 Subnet Planner & Calculator | Network Planning Tool</title>
     <style>
       * {
         box-sizing: border-box;
@@ -466,7 +465,7 @@
         <tbody id="tableBody">
           <tr>
             <td colspan="17" class="empty-state">
-              Enter a network address and click Go to start planning
+              Enter a network address and click Go to start
             </td>
           </tr>
         </tbody>
@@ -475,73 +474,54 @@
 
     <div class="footer">
       <div class="footer-section">
-        <h2>IPv6 Network Planning Tool Features</h2>
-        <p>
-          This IPv6 network planning tool serves as both a subnet planner and
-          calculator for intuitive IPv6 address space management. Unlike
-          traditional IPv6 subnet calculators, this tool provides hierarchical
-          visualization making it ideal for large network planning scenarios.
-          Perfect for network engineers managing IPv6 deployments, data center
-          planning, and documentation of IPv6 address space allocations.
-        </p>
+        <h2>How to Use</h2>
+        <p>Enter an IPv6 address and click Go to load.</p>
+        <p>Click green Split buttons to divide subnets.</p>
+        <p>Click red Join buttons to merge subnets back together.</p>
+        <p>Add notes and colors to document allocations.</p>
+        <p>Click Share to copy the URL with current state.</p>
+        <p>Click Export CSV to download subnet plans.</p>
 
-        <p><strong>Key Features:</strong></p>
+        <p><strong>Why use this tool</strong></p>
         <ul>
           <li>
-            <strong>Nibble-Aligned Splitting (Default):</strong> Click the green
-            "Split" button to divide a network into smaller subnets at 4-bit
-            boundaries (/20, /24, /28, etc.), creating 16 child subnets per
-            split.
+            <strong>Nibble-aligned splitting</strong> divides networks at 4-bit
+            boundaries for easy hexadecimal management
           </li>
           <li>
-            <strong>Custom Split Targets:</strong> Use the dropdown next to the
-            Split button to select any target prefix for
-            <a
-              href="https://www.daryllswer.com/ipv6-architecture-and-subnetting-guide-for-network-engineers-and-operators/#subnetting-guideline"
-              target="_blank"
-              >geographical denomination models</a
-            >
-            or specialized addressing schemes.
+            <strong>Custom split targets</strong> support geographical
+            denomination models and specialized addressing schemes
           </li>
           <li>
-            <strong>Join Subnets:</strong> Click red "Join" button to merge
-            subnets back together into their parent network.
+            <strong>Prefix range</strong> from /16 to /64 with /64 as minimum
           </li>
           <li>
-            <strong>Prefix Range:</strong> /16 to /64, with /64 as minimum
-            assignable subnet.
+            <strong>Location-based planning</strong> shows /48 counts for large
+            allocations and /64 counts for smaller subnets
           </li>
           <li>
-            <strong>Location-Based Planning:</strong> Shows count of /48s
-            (typical site/location size) for prefixes &lt; /48, and /64s
-            (minimum subnet size) for prefixes ≥ /48.
+            <strong>Visual hierarchy</strong> join buttons span rows to show
+            parent-child relationships
           </li>
           <li>
-            <strong>Visual Hierarchy:</strong> Join buttons span multiple rows
-            to show parent-child relationships.
+            <strong>Annotations</strong> document allocations with notes and
+            colors
           </li>
           <li>
-            <strong>Annotations:</strong> Add notes and color-code subnets for
-            documentation.
+            <strong>Shareable URLs</strong> encode complete state for sharing
           </li>
           <li>
-            <strong>Shareable URLs:</strong> Complete state encoded in URL for
-            easy sharing.
-          </li>
-          <li>
-            <strong>CSV Export:</strong> Download subnet plans with proper
-            hierarchy indentation for external documentation.
+            <strong>CSV export</strong> download plans with hierarchy
+            indentation
           </li>
         </ul>
       </div>
 
       <div class="footer-section">
         <p>
-          This tool was made by
-          <a href="https://JasonTally.com" target="_blank">Jason Tally</a> with
-          the help of
-          <a href="https://opencode.ai/" target="_blank">opencode.ai</a> and
-          Claude. The code is available on
+          Created by
+          <a href="https://JasonTally.com" target="_blank">Jason Tally</a>. Code
+          is available on
           <a href="https://github.com/jasontally/IPv6-Plan" target="_blank"
             >GitHub</a
           >.
@@ -575,7 +555,7 @@
         class="footer-section"
         style="text-align: center; color: #999; font-size: 12px"
       >
-        Version 0.6.0
+        Version 0.6.1
       </div>
     </div>
 

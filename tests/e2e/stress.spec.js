@@ -159,6 +159,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
     await page.click('button:has-text("Go")');
 
     // Create 512 children using /41 split (32 to 41 = 9 bits = 512)
+    // With intermediate /36 and /40: 1 root + 16 /36 + 256 /40 + 512 /41 = 785 rows
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("41");
 
@@ -167,8 +168,8 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
     await page.waitForTimeout(1000);
 
     const subnetCells = page.locator(".subnet-cell");
-    // 1 root + 512 children = 513 rows
-    await expect(subnetCells).toHaveCount(513);
+    // 1 root + 16 /36 + 256 /40 + 512 /41 = 785 rows
+    await expect(subnetCells).toHaveCount(785);
   });
 
   test("should handle large URL hash", async ({ page }) => {

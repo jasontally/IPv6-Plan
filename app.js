@@ -789,13 +789,14 @@ function showColorPicker(cidr, button) {
 
   // Remove any existing picker before creating new one
   const existingPicker = document.querySelector(
-    "body > div[style*='position: fixed']",
+    "body > div:has(button:has-text('Clear'))",
   );
   if (existingPicker) {
     document.body.removeChild(existingPicker);
   }
 
   const picker = document.createElement("div");
+  picker.dataset.colorPicker = "true";
   picker.style.position = "fixed";
   picker.style.background = "white";
   picker.style.border = "1px solid #ccc";

@@ -394,6 +394,114 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 
 ## Common Pitfalls
 
+## Testing
+
+The codebase now includes comprehensive automated tests with Vitest (unit tests) and Playwright (E2E tests).
+
+### Running Tests
+
+**Unit Tests (Vitest):**
+
+```bash
+# Run all unit tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with UI
+npm test:ui
+
+# Run tests once and exit
+npm test:run
+```
+
+**E2E Tests (Playwright):**
+
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install
+
+# Run E2E tests
+npm test:e2e
+
+# Run E2E tests in UI mode
+npm test:e2e:ui
+
+# Run E2E tests in headed mode (visible browser)
+npm test:e2e:headed
+```
+
+### Test Files
+
+**Unit Tests Location:** `tests/*.test.js`
+
+- `ipv6.test.js` - Tests for parseIPv6, formatIPv6, applyPrefix, compareCIDR
+- `subnet-tree.test.js` - Tests for splitSubnet, joinSubnet, getSubnetNode, isSplit
+- `state.test.js` - Tests for saveState, loadState, loadNetwork
+- `create-intermediate-level.test.js` - Tests for createIntermediateLevel function
+- `create-intermediate-levels.test.js` - Tests for createIntermediateLevels function
+- `delete-descendants.test.js` - Tests for deleteDescendants function
+- `nibble-boundaries.test.js` - Tests for getNibbleBoundaries function
+- `create-intermediate-extra.test.js` - Tests for additional intermediate level scenarios
+
+**E2E Tests Location:** `tests/e2e/*.spec.js`
+
+- `split-join.spec.js` - Tests for split, join operations, UI interactions
+- `url-export.spec.js` - Tests for URL sharing, CSV export, download handling
+- `initialization.spec.js` - E2E tests for app initialization
+- `error-scenarios.spec.js` - E2E tests for error handling
+- `accessibility.spec.js` - E2E tests for accessibility
+- `stress.spec.js` - E2E tests for large trees
+- `color-picker.spec.js` - E2E tests for color picker functionality
+- `subnet-math.spec.js` - E2E tests for subnet math visual verification
+
+### Test Coverage
+
+The test suite provides comprehensive coverage of:
+
+1. **Core IPv6 Math Operations**
+   - Parsing various address formats (compressed, full, edge cases)
+   - Formatting with RFC 5952 compression
+   - Prefix masking at various boundary conditions
+   - Numerical comparison of CIDR addresses
+   - Child subnet calculation (nibble-aligned, non-nibble-aligned, custom targets)
+
+2. **Tree Operations**
+   - Node creation and retrieval
+   - Split and join operations
+   - Metadata inheritance (notes and colors)
+   - Multi-level tree structures
+   - Intermediate level creation
+
+3. **State Management**
+   - State persistence (save/load)
+   - URL hash encoding/decoding
+   - Network loading and validation
+   - Error handling
+
+4. **End-to-End (E2E) Tests**
+   - UI interactions
+   - Visual verification of subnet math
+   - URL sharing functionality
+   - CSV export functionality
+   - Color picker functionality
+   - Error scenario handling
+   - Accessibility compliance
+   - Performance with large trees
+
+### Verification
+
+All IPv6 subnetting math has been verified against the `ip6addr` library, confirming correct behavior for:
+
+- IPv6 address parsing and formatting
+- Prefix masking operations
+- CIDR comparison and sorting
+- Child subnet calculation
+- Sequential address generation
+
+### Common Pitfalls
+
 1. **Wrong Child Count:** Calculate as `2^(targetPrefix - currentPrefix)`, don't assume 16
 2. **Wrong Address Increment:** Use nibble boundary, not full groups (`3fff:100::` not `3fff:1000::`)
 3. **String Sorting:** Always use `compareCIDR()` for numerical sorting

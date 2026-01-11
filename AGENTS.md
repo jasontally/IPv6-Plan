@@ -44,20 +44,43 @@ v6calc/
 
 ### Before Making Changes
 
-1. **Read the relevant documentation:**
-   - `ARCHITECTURE.md` - Understanding data structures and algorithms
-   - This file (`AGENTS.md`) - Code conventions and testing
+1.  **Read the relevant documentation:**
+    - `ARCHITECTURE.md` - Understanding data structures and algorithms
+    - This file (`AGENTS.md`) - Code conventions and testing
 
-2. **Understand the single-file constraint:**
-   - All code stays in `index.html`
-   - Do not split into separate files unless explicitly requested
-   - Do not introduce build tools or bundlers
+2.  **Understand the single-file constraint:**
+    - All code stays in `index.html`
+    - Do not split into separate files unless explicitly requested
+    - Do not introduce build tools or bundlers
+      3. **Verify the change is safe:**
+      - Test the application manually after changes
+      - Run automated tests: `npm test` and `npm run test:e2e`
 
-3. **Verify the change is safe:**
-   - Test the application manually after changes
-   - Run automated tests: `npm test` and `npm run test:e2e`
+      ### Writing Tests
 
-### Code Conventions
+**Unit Tests Location:** `tests/*.test.js`
+
+- `ipv6.test.js` - Tests for parseIPv6, formatIPv6, applyPrefix, compareCIDR
+- `subnet-tree.test.js` - Tests for splitSubnet, joinSubnet, getSubnetNode, isSplit
+- `state.test.js` - Tests for saveState, loadState, loadNetwork
+- `create-intermediate-level.test.js` - Tests for createIntermediateLevel function
+- `create-intermediate-levels.test.js` - Tests for createIntermediateLevels function
+- `create-intermediate-extra.test.js` - Tests for additional intermediate level scenarios
+- `delete-descendants.test.js` - Tests for deleteDescendants function
+- `nibble-boundaries.test.js` - Tests for getNibbleBoundaries function
+
+**E2E Tests Location:** `tests/e2e/*.spec.js`
+
+- `split-join.spec.js` - Tests for split, join operations, UI interactions
+- `url-export.spec.js` - Tests for URL sharing, CSV export, download handling
+- `initialization.spec.js` - E2E tests for app initialization
+- `error-scenarios.spec.js` - E2E tests for error handling
+- `accessibility.spec.js` - E2E tests for accessibility
+- `stress.spec.js` - E2E tests for large trees
+- `color-picker.spec.js` - E2E tests for color picker functionality
+- `subnet-math.spec.js` - E2E tests for subnet math visual verification (split displays, sequential addresses, format correctness)
+
+  ### Code Conventions
 
 #### JavaScript
 

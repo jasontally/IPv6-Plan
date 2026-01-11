@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getSubnetNode,
   getChildSubnet,
@@ -14,13 +14,31 @@ import {
   createIntermediateLevel,
   parseIPv6,
   subnetTree,
+  splitSubnet,
+  render,
+  saveState,
 } from "../app.js";
 
 describe("Subnet Tree Operations", () => {
+  const mockSaveState = vi.fn();
+  const mockRender = vi.fn();
+
   beforeEach(() => {
     Object.keys(subnetTree).forEach((key) => {
       delete subnetTree[key];
     });
+    mockSaveState.mockClear();
+    mockRender.mockClear();
+    global.saveState = mockSaveState;
+    global.render = mockRender;
+    // Mock document.getElementById to avoid DOM access errors
+    global.document = {
+      getElementById: vi.fn().mockReturnValue({
+        innerHTML: "",
+        value: "",
+        textContent: "",
+      }),
+    };
   });
 
   describe("getSubnetNode", () => {
@@ -406,6 +424,112 @@ describe("Subnet Tree Operations", () => {
         (k) => !k.startsWith("_"),
       );
       expect(grandchildKeys.length).toBe(1);
+    });
+  });
+
+  describe("splitSubnet - direct split inheritance", () => {
+    it("should inherit note and color when splitting /20 to /21", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Main office",
+        _color: "#FF0000",
+      };
+
+      splitSubnet("3fff::/20", 21);
+
+      const parent = getSubnetNode("3fff::/20");
+      const children = Object.keys(parent).filter((k) => !k.startsWith("_"));
+
+      expect(children.length).toBe(2);
+
+      const child1 = parent[children[0]];
+      expect(child1._note).toBe("Main office");
+      expect(child1._color).toBe("#FF0000");
+
+      const child2 = parent[children[1]];
+      expect(child2._note).toBe("Main office");
+      expect(child2._color).toBe("#FF0000");
+    });
+
+    it("should inherit note and color when splitting /20 to /22", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Data center",
+        _color: "#00FF00",
+      };
+
+      splitSubnet("3fff::/20", 22);
+
+      const parent = getSubnetNode("3fff::/20");
+      const children = Object.keys(parent).filter((k) => !k.startsWith("_"));
+
+      expect(children.length).toBe(4);
+
+      children.forEach((childCidr) => {
+        const child = parent[childCidr];
+        expect(child._note).toBe("Data center");
+        expect(child._color).toBe("#00FF00");
+      });
+    });
+
+    it("should inherit note and color when splitting /20 to /23", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Branch office",
+        _color: "#0000FF",
+      };
+
+      splitSubnet("3fff::/20", 23);
+
+      const parent = getSubnetNode("3fff::/20");
+      const children = Object.keys(parent).filter((k) => !k.startsWith("_"));
+
+      expect(children.length).toBe(8);
+
+      children.forEach((childCidr) => {
+        const child = parent[childCidr];
+        expect(child._note).toBe("Branch office");
+        expect(child._color).toBe("#0000FF");
+      });
+    });
+
+    it("should inherit note and color when splitting /20 to /24", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Production",
+        _color: "#FFE5E5",
+      };
+
+      splitSubnet("3fff::/20", 24);
+
+      const parent = getSubnetNode("3fff::/20");
+      const children = Object.keys(parent).filter((k) => !k.startsWith("_"));
+
+      expect(children.length).toBe(16);
+
+      const child1 = parent[children[0]];
+      expect(child1._note).toBe("Production");
+      expect(child1._color).toBe("#FFE5E5");
+
+      const child2 = parent[children[1]];
+      expect(child2._note).toBe("Production");
+      expect(child2._color).toBe("#FFE5E5");
+    });
+
+    it("should create standalone tree entries with inherited metadata", () => {
+      subnetTree["3fff::/20"] = {
+        _note: "Test note",
+        _color: "#FF00FF",
+      };
+
+      splitSubnet("3fff::/20", 24);
+
+      const parent = getSubnetNode("3fff::/20");
+      const children = Object.keys(parent).filter((k) => !k.startsWith("_"));
+
+      expect(children.length).toBe(16);
+
+      children.forEach((childCidr) => {
+        expect(subnetTree[childCidr]).toBeDefined();
+        expect(subnetTree[childCidr]._note).toBe("Test note");
+        expect(subnetTree[childCidr]._color).toBe("#FF00FF");
+      });
     });
   });
 

@@ -472,11 +472,26 @@ function splitSubnet(cidr, targetPrefix = null) {
 
   if (boundaries.length === 1 && boundaries[0] === target) {
     // Single boundary at target, create children directly
+    const parentNote = node._note;
+    const parentColor = node._color;
     for (let i = 0; i < numChildren; i++) {
       const childBytes = getChildSubnetAtTarget(bytes, prefixNum, target, i);
       const childAddr = formatIPv6(childBytes);
       const childCidr = `${childAddr}/${target}`;
-      node[childCidr] = { _note: "", _color: "" };
+
+      // Create standalone node in tree with inherited metadata
+      if (!subnetTree[childCidr]) {
+        subnetTree[childCidr] = {
+          _note: parentNote,
+          _color: parentColor,
+        };
+      }
+
+      // Add child node to parent
+      node[childCidr] = {
+        _note: parentNote,
+        _color: parentColor,
+      };
     }
   } else {
     // Multiple boundaries, create intermediate levels
@@ -1092,6 +1107,7 @@ export {
   isSplit,
   joinSubnet,
   deleteDescendants,
+  render,
   saveState,
   loadState,
   loadNetwork,

@@ -579,7 +579,7 @@ function render() {
 
   if (!rootNetwork) {
     tbody.innerHTML =
-      '<tr><td colspan="14" class="empty-state">Enter a network address and click Go to start planning</td></tr>';
+      '<tr><td colspan="6" class="empty-state">Enter a network address and click Go to start planning</td></tr>';
     return;
   }
 
@@ -682,15 +682,21 @@ function render() {
 
     // Note column
     const noteTd = document.createElement("td");
+    const noteLabel = document.createElement("label");
+    noteLabel.className = "sr-only";
+    noteLabel.textContent = `Note for ${row.cidr}`;
+    noteLabel.htmlFor = `note-${row.cidr.replace(/[\/:]/g, "-")}`;
     const noteInput = document.createElement("input");
     noteInput.type = "text";
     noteInput.className = "note-input";
+    noteInput.id = `note-${row.cidr.replace(/[\/:]/g, "-")}`;
     noteInput.value = row.note;
     noteInput.addEventListener("input", () => {
       const node = getSubnetNode(row.cidr);
       node._note = noteInput.value;
       saveState();
     });
+    noteTd.appendChild(noteLabel);
     noteTd.appendChild(noteInput);
     tr.appendChild(noteTd);
 
@@ -699,7 +705,11 @@ function render() {
     colorTd.className = "button-cell";
     const colorBtn = document.createElement("button");
     colorBtn.className = "color-button";
-    if (row.color) colorBtn.style.background = row.color;
+    colorBtn.ariaLabel = `Change color for ${row.cidr}`;
+    if (row.color) {
+      colorBtn.style.background = row.color;
+      colorBtn.ariaLabel += ` (currently ${row.color})`;
+    }
     colorBtn.addEventListener("click", () =>
       showColorPicker(row.cidr, colorBtn),
     );
@@ -715,6 +725,7 @@ function render() {
 
     const splitSelect = document.createElement("select");
     splitSelect.className = "split-select";
+    splitSelect.ariaLabel = `Select split target prefix for ${row.cidr}`;
 
     const isAligned = row.prefix % 4 === 0;
     const nextNibble = isAligned
@@ -744,6 +755,7 @@ function render() {
     const splitBtn = document.createElement("button");
     splitBtn.className = "split-button";
     splitBtn.textContent = "Split";
+    splitBtn.ariaLabel = `Split ${row.cidr} into smaller subnets`;
     splitBtn.disabled = row.prefix >= 64 || !row.isLeaf;
     splitBtn.addEventListener("click", () => {
       const selectedValue = splitSelect.value;
@@ -783,7 +795,7 @@ function render() {
         const joinBtn = document.createElement("button");
         joinBtn.className = "join-button";
         joinBtn.textContent = `/${ancestorPrefix}`;
-        joinBtn.title = `Join subnets back together to form a /${ancestorPrefix} network`;
+        joinBtn.ariaLabel = `Join subnets back together to form a /${ancestorPrefix} network`;
         joinBtn.addEventListener("click", () =>
           joinSubnet(row.cidr, parseInt(ancestorPrefix)),
         );
@@ -824,6 +836,9 @@ function showColorPicker(cidr, button) {
   picker.style.padding = "10px";
   picker.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
   picker.style.zIndex = "1000";
+  picker.setAttribute("role", "dialog");
+  picker.setAttribute("aria-label", "Choose a color for the subnet");
+  picker.setAttribute("aria-modal", "true");
 
   const rect = button.getBoundingClientRect();
   picker.style.left = rect.left + "px";
@@ -840,15 +855,43 @@ function showColorPicker(cidr, button) {
   picker.appendChild(clearBtn);
 
   // Add color options
-  COLORS.forEach((color) => {
+  const colorNames = [
+    "Soft Pink",
+    "Sky Blue",
+    "Mint Green",
+    "Peach",
+    "Lavender",
+    "Cyan",
+    "Cream",
+    "Rose",
+    "Ice Blue",
+    "Pale Lime",
+    "Apricot",
+    "Periwinkle",
+    "Sand",
+    "Seafoam",
+    "Blush",
+    "Aqua Mint",
+  ];
+  COLORS.forEach((color, index) => {
     const opt = document.createElement("div");
     opt.className = "color-option";
     opt.style.background = color;
     opt.style.display = "inline-block";
     opt.style.margin = "2px";
+    opt.setAttribute("role", "button");
+    opt.setAttribute("aria-label", colorNames[index]);
+    opt.setAttribute("tabindex", "0");
     opt.addEventListener("click", () => {
       setColor(color);
       document.body.removeChild(picker);
+    });
+    opt.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setColor(color);
+        document.body.removeChild(picker);
+      }
     });
     picker.appendChild(opt);
   });

@@ -6,6 +6,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta charset="UTF-8" />
     <meta
       name="viewport"
@@ -409,6 +410,18 @@
       .footer li {
         margin-bottom: 5px;
       }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
     </style>
   </head>
   <body>
@@ -433,7 +446,7 @@
         <button class="share-button" onclick="exportCSV()">Export CSV</button>
       </div>
       <div class="input-group" style="margin-top: 10px">
-        <label>Quick Load:</label>
+        <span>Quick Load:</span>
         <button class="doc-button" onclick="loadDocPrefix('3fff::', 20)">
           3fff::/20 (RFC 9637)
         </button>
@@ -555,11 +568,12 @@
         class="footer-section"
         style="text-align: center; color: #999; font-size: 12px"
       >
-         Version 0.6.5
+         Version 0.6.6
       </div>
     </div>
     </div>
 
-    <script type="module" src="app.js?v=0.6.5"></script>
+    <script type="module" src="app.js?v=0.6.6"></script>
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"eddbbe15b61342359b84860a5fd651f9","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
   </body>
 </html>

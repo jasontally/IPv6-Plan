@@ -382,6 +382,84 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 #FFD5E5 (Blush)          #E5FFED (Aqua Mint)
 ```
 
+## Accessibility Implementation
+
+The application is designed to meet WCAG 2.1 Level AA accessibility standards.
+
+### Screen Reader Support
+
+**ARIA Labels:**
+
+- All interactive elements have descriptive `aria-label` attributes
+- Buttons include context (e.g., "Split 3fff::/24 into smaller subnets")
+- Color buttons indicate current color selection
+- Split select dropdowns identify their associated subnet
+
+**Semantic Labels:**
+
+- Form inputs have proper `<label>` elements
+- Labels use `.sr-only` class to hide visually while keeping accessible
+- Never rely on placeholder text as labels (WCAG violation)
+
+**ARIA Roles:**
+
+- Color picker dialog uses `role="dialog"` with `aria-modal="true"`
+- Color options use `role="button"` with `tabindex="0"` for keyboard access
+- Table structure uses semantic `<th>` and `<td>` elements
+
+### Keyboard Navigation
+
+**Focus Management:**
+
+- All interactive elements are keyboard focusable
+- Color picker options support Enter and Space key activation
+- Focus indicators provide clear visual feedback
+
+**Key Handlers:**
+
+- Split buttons work with Enter/Space
+- Join buttons work with Enter/Space
+- Color picker options: Enter/Space to select, Escape to close
+- Outside click closes color picker (handled in timeout listener)
+
+### Visual Accessibility
+
+**Color Contrast:**
+
+- Text meets WCAG AA minimum contrast ratios
+- Focus states provide visual indicators (default browser outline or custom styles)
+
+**Screen Reader Only Class:**
+
+```css
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+```
+
+### Accessibility Guidelines for Future Changes
+
+When adding or modifying UI components:
+
+1. **Always add ARIA labels** to interactive elements
+2. **Use `<label>` elements** for form inputs (not placeholder)
+3. **Ensure keyboard navigation** works for all features
+4. **Use semantic HTML** elements (`<button>`, `<input>`, not `<div>` with click handlers)
+5. **Test with screen reader** when adding new components
+6. **Maintain focus management** in dialogs/modals
+7. **Provide visual feedback** for keyboard focus
+8. **Avoid color-only** indicators for information (add text or patterns)
+9. **Use ARIA roles** appropriately (e.g., `role="dialog"` for modals)
+10. **Include descriptive text** for all actions (not just icons)
+
 ## Important Invariants
 
 1. **Prefix Range:** Only /16 to /64 are valid (enforced in `loadNetwork`)
@@ -391,6 +469,7 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 5. **RFC 5952 Compliance:** All addresses displayed in compressed form
 6. **State Persistence:** URL hash always reflects current state
 7. **Permissive Validation:** Any syntactically valid IPv6 address is accepted
+8. **Accessibility Compliance:** UI meets WCAG 2.1 Level AA standards
 
 ## Common Pitfalls
 

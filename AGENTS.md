@@ -51,8 +51,7 @@ v6calc/
 2.  **Understand the single-file constraint:**
     - All code stays in `index.html`
     - Do not split into separate files unless explicitly requested
-    - Do not introduce build tools or bundlers
-      3. **Verify the change is safe:**
+    - Do not introduce build tools or bundlers 3. **Verify the change is safe:**
       - Test the application manually after changes
       - Run automated tests: `npm test` and `npm run test:e2e`
 
@@ -80,174 +79,67 @@ v6calc/
 - `color-picker.spec.js` - E2E tests for color picker functionality
 - `subnet-math.spec.js` - E2E tests for subnet math visual verification (split displays, sequential addresses, format correctness)
 
-  ### Code Conventions
+### Accessibility Requirements
 
-#### JavaScript
+**All UI changes must meet WCAG 2.1 Level AA standards.**
 
-- **Use modern ES6+ syntax:** arrow functions, const/let, template literals
-- **Function declarations:** Use `function name()` for top-level functions (not const arrows)
-- **JSDoc comments:** All functions must have JSDoc describing:
-  - Purpose
-  - Parameters with types
-  - Return type
-  - `@returns {void}` if no return value
+**Mandatory for all interactive elements:**
 
-```javascript
-/**
- * Calculate the address of a child subnet
- * @param {Uint8Array} bytes - 16-byte array of parent address
- * @param {number} prefix - Current prefix length
- * @param {number} index - Child index (0-based)
- * @returns {Uint8Array} 16-byte array of child address
- */
-function getChildSubnet(bytes, prefix, index) {
-  // Implementation
-}
-```
+1. **ARIA labels** - Every button and interactive element must have descriptive `aria-label`:
 
-- **Type hints:** Use JSDoc types even though it's plain JS
-- **Variable naming:** camelCase for variables/parameters, PascalCase for constructor functions
+   ```javascript
+   const button = document.createElement("button");
+   button.ariaLabel = `Split ${cidr} into smaller subnets`;
+   ```
 
-#### HTML/CSS
+2. **Form labels** - Use `<label>` elements (never placeholder-only):
 
-- **Inline styles:** CSS is in `<style>` block in `<head>`
-- **Class naming:** kebab-case (e.g., `subnet-cell`, `button-cell`)
-- **IDs:** camelCase (e.g., `networkInput`, `tableBody`)
-- **No external CSS files**
+   ```javascript
+   const label = document.createElement("label");
+   label.className = "sr-only";
+   label.textContent = `Note for ${cidr}`;
+   label.htmlFor = `note-${cidr}`;
+   ```
 
-#### Data Structures
+3. **Semantic HTML** - Use proper elements (`<button>`, `<input>`, not `<div>`):
 
-**Subnet Tree (global `subnetTree`):**
+   ```javascript
+   // Good
+   const button = document.createElement("button");
+   button.addEventListener("click", handleClick);
 
-```javascript
-{
-  "3fff::/20": {
-    _note: "",
-    _color: "#FFE5E5",
-    "3fff::/24": {
-      _note: "Main data center",
-      _color: "#E5F3FF",
-      "3fff::/28": { _note: "", _color: "" }
-    }
-  }
-}
-```
+   // Bad
+   const div = document.createElement("div");
+   div.addEventListener("click", handleClick);
+   div.setAttribute("role", "button");
+   ```
 
-**Important:**
+4. **Keyboard support** - All interactions must work via keyboard:
+   - Enter/Space to activate buttons
+   - Tab to navigate between controls
+   - Escape to close dialogs/modals
 
-- `_note` and `_color` are prefixed with underscore
-- Child keys are CIDR strings pointing to nested objects
-- Children are sorted numerically by IPv6 address, not string
+5. **ARIA roles** - Use appropriate roles for non-standard elements:
 
-## Critical Algorithms
+   ```javascript
+   dialog.setAttribute("role", "dialog");
+   dialog.setAttribute("aria-modal", "true");
+   ```
 
-### IPv6 Address Handling
+6. **Focus management** - Provide visual feedback for keyboard focus:
+   - Don't remove default browser outline
+   - Or provide custom focus styles in CSS
 
-**Always use these functions:**
+**Accessibility Testing Checklist:**
 
-- `parseIPv6(addr)` - Parse string to 16-byte Uint8Array
-- `formatIPv6(bytes)` - Format bytes to compressed RFC 5952 string
-- `applyPrefix(bytes, prefix)` - Mask to network address
-- `compareCIDR(a, b)` - Numerically compare CIDR addresses
-
-**Never:**
-
-- Parse IPv6 manually
-- Display expanded addresses (always use `formatIPv6`)
-- Sort addresses as strings (use `compareCIDR`)
-
-### Subnet Splitting
-
-**Split calculation:**
-
-```
-nextNibble = (prefix % 4 === 0) ? prefix + 4 : Math.ceil(prefix / 4) * 4
-numChildren = 2^(nextNibble - prefix)
-```
-
-**Example child addresses for `/20` split:**
-
-- Child 0: `3fff::/24`
-- Child 1: `3fff:100::/24` (note: `100`, not `1000`)
-- Child 2: `3fff:200::/24`
-- ...
-
-**Always use `getChildSubnetAtTarget(bytes, prefix, targetPrefix, index)`** to calculate child addresses.
-
-**Intermediate Level Creation:**
-
-When splitting across multiple nibble boundaries (e.g., `/20 → /28`), the app automatically creates intermediate levels:
-
-- `/20 → /28` creates `/24` intermediate level, then `/28` children (273 rows total)
-- `/20 → /30` creates `/24 → /28 → /30` hierarchy (1297 rows total)
-- `/20 → /24` directly creates `/24` children (16 rows, no intermediates needed)
-
-**Key functions:**
-
-- `getNibbleBoundaries(startPrefix, endPrefix)` - Calculate intermediate nibble boundaries
-- `createIntermediateLevel(parentCidr, targetPrefix)` - Create one level of children
-- `createIntermediateLevels(parentCidr, targetPrefix)` - Recursively create all intermediate levels
-- `deleteDescendants(cidr)` - Recursively delete all descendants (used by joinSubnet)
-
-### Row Span Calculation
-
-Join buttons must visually span all descendant rows:
-
-1. Ancestor at level 0 appears in all rows that have `ancestry[0] === ancestorCidr`
-2. Calculate count by iterating from first child until ancestry changes
-3. Apply `rowspan=count` only on first row
-4. Use key format: `${ancestorCidr}-${level}` for tracking
-
-## Testing Strategy
-
-The codebase now includes automated tests with Vitest (unit tests) and Playwright (E2E tests).
-
-### Running Tests
-
-**Unit Tests (Vitest):**
-
-```bash
-# Run all unit tests
-npm test
-
-# Run tests in watch mode
-npm test -- --watch
-
-# Run tests with UI
-npm test:ui
-
-# Run tests once and exit
-npm test:run
-```
-
-**E2E Tests (Playwright):**
-
-```bash
-# Install Playwright browsers (first time only)
-npx playwright install
-
-# Run E2E tests
-npm test:e2e
-
-# Run E2E tests in UI mode
-npm test:e2e:ui
-
-# Run E2E tests in headed mode (visible browser)
-npm test:e2e:headed
-```
-
-### Writing Tests
-
-**Unit Tests Location:** `tests/*.test.js`
-
-- `ipv6.test.js` - Tests for parseIPv6, formatIPv6, applyPrefix, compareCIDR
-- `subnet-tree.test.js` - Tests for splitSubnet, joinSubnet, getSubnetNode, isSplit
-- `state.test.js` - Tests for saveState, loadState, loadNetwork
-
-**E2E Tests Location:** `tests/e2e/*.spec.js`
-
-- `split-join.spec.js` - Tests for split, join operations, UI interactions
-- `url-export.spec.js` - Tests for URL sharing, CSV export, download handling
+- [ ] All buttons have `aria-label` with context
+- [ ] All form inputs have `<label>` elements
+- [ ] All interactive elements are keyboard focusable
+- [ ] Tab order follows logical visual flow
+- [ ] Focus indicators are visible
+- [ ] Color contrast meets WCAG AA (4.5:1 for normal text)
+- [ ] No color-only indicators for information
+- [ ] Dynamic content changes are announced to screen readers
 
 ### Manual Testing
 
@@ -337,3 +229,9 @@ Despite automated tests, manual testing is still recommended after changes:
 - [ ] Updated documentation (if API/architecture changed)
 - [ ] Did not introduce external dependencies
 - [ ] Did not split files (kept single HTML file)
+- [ ] Checked accessibility requirements (if UI changed):
+  - [ ] ARIA labels on all interactive elements
+  - [ ] Form labels for all inputs
+  - [ ] Keyboard navigation works
+  - [ ] Focus indicators visible
+  - [ ] Color contrast meets WCAG AA

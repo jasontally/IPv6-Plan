@@ -91,6 +91,22 @@ Works in all modern browsers that support ES6 JavaScript HTML5 and CSS3 includin
 
 Tested on Chrome/Edge Firefox and Safari latest versions.
 
+### Favicon
+
+Custom favicon featuring "6" with gradient trail effect, using the app's purple color scheme (#7C3AED). Maintains visual consistency with the technical networking theme while distinguishing the IPv6 Subnet Planner from other sites.
+
+## Accessibility
+
+The IPv6 Subnet Planner is designed to meet WCAG 2.1 Level AA accessibility standards.
+
+- **Screen Reader Support** All interactive elements have descriptive ARIA labels
+- **Keyboard Navigation** Full keyboard support for all operations including color picker options
+- **Form Labels** All inputs have proper labels for assistive technologies
+- **Semantic HTML** Uses appropriate HTML elements and ARIA roles
+- **Focus Indicators** Clear visual feedback for keyboard focus
+- **Color Contrast** Meets WCAG AA requirements for text readability
+- **ARIA Dialogs** Color picker uses proper ARIA dialog attributes with modal behavior
+
 ## Implementation Notes
 
 ### Nibble Alignment

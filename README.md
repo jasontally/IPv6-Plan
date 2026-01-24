@@ -23,6 +23,7 @@ Network engineers and administrators use this tool to plan IPv6 address space by
 - **Visual Hierarchy** Join buttons span multiple rows to show parent-child relationships
 - **Annotations** Add notes and color-code subnets to document allocations
 - **Shareable URLs** Encode complete planning state in URL for sharing
+- **Compressed URLs** Deflate-raw compression reduces URL size for sharing complex plans
 - **CSV Export** Download subnet plans with proper hierarchy indentation
 - **RFC 5952 Compliance** Display all IPv6 addresses in proper compressed notation
 - **Quick Load** One-click loading of common documentation prefixes 3fff::/20 and 2001:db8::/32
@@ -84,6 +85,22 @@ The Contains column shows different metrics based on prefix length
 - **No Backend Required** All processing happens in the browser
 - **State Management** Uses URL hash for state persistence and sharing
 - **Color Palette** 16 distinct pastel colors for visual categorization
+
+### State Compression
+
+Shared URLs use deflate-raw compression in modern browsers to reduce URL hash size. The compression ratio varies based on tree size - larger trees with many subnets benefit most. The app automatically detects browser support and falls back to base64 encoding for older browsers.
+
+**Format Versions:**
+
+- `v2` - Deflate-raw compressed (modern browsers)
+- `v1` - Base64 encoded (fallback)
+- No marker - Legacy base64 format (backward compatible)
+
+**Browser Support:**
+
+- Compression available in Chrome 80+, Firefox 113+, Safari 16.4+
+- Fallback to base64 ensures functionality everywhere
+- Existing shared URLs continue to work
 
 ## Browser Compatibility
 

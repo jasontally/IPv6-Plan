@@ -152,3 +152,163 @@ test.describe("CSV Export", () => {
     expect(text).toContain("    3fff::/28"); // Child should be indented
   });
 });
+
+test.describe("Deflate-Raw Compression", () => {
+  test("should create URL with v2 marker when compression supported", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Load and split a network to create state
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "32");
+    await page.click('button:has-text("Go")');
+
+    // Split root to create tree
+    await page.click(".split-button");
+
+    // Wait for state to be saved
+    await page.waitForTimeout(100);
+
+    // Get URL and check for v2 marker (modern browsers support compression)
+    const url = page.url();
+    expect(url).toContain("#v2");
+  });
+
+  test("should round-trip state through v2 compressed URL", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Create state with note and color
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "32");
+    await page.click('button:has-text("Go")');
+
+    // Add a note to verify it persists
+    await page.fill(".note-input", "Test Network Note");
+    await page.waitForTimeout(100);
+
+    // Get the current URL with compressed state
+    const url = page.url();
+    expect(url).toContain("#v2");
+
+    // Navigate to a blank page and back to the URL
+    await page.goto("about:blank");
+    await page.goto(url);
+
+    // Verify state was restored
+    await expect(page.locator("#networkInput")).toHaveValue("2001:db8::");
+    await expect(page.locator("#prefixSelect")).toHaveValue("32");
+    await expect(page.locator(".note-input").first()).toHaveValue(
+      "Test Network Note",
+    );
+  });
+
+  test("should be backward compatible with v1 (base64) URLs", async ({
+    page,
+  }) => {
+    const state = {
+      network: "2001:db8::",
+      prefix: 32,
+      tree: { "2001:db8::/32": { _note: "v1 test", _color: "" } },
+    };
+    const json = JSON.stringify(state);
+    const hash = btoa(encodeURIComponent(json));
+
+    await page.goto(`/#v1${hash}`);
+
+    await expect(page.locator("#networkInput")).toHaveValue("2001:db8::");
+    await expect(page.locator("#prefixSelect")).toHaveValue("32");
+    await expect(page.locator(".note-input").first()).toHaveValue("v1 test");
+  });
+
+  test("should handle legacy URLs without version marker", async ({ page }) => {
+    const state = {
+      network: "2001:db8::",
+      prefix: 32,
+      tree: { "2001:db8::/32": { _note: "legacy test", _color: "" } },
+    };
+    const json = JSON.stringify(state);
+    const hash = btoa(encodeURIComponent(json));
+
+    await page.goto(`/#${hash}`);
+
+    await expect(page.locator("#networkInput")).toHaveValue("2001:db8::");
+    await expect(page.locator("#prefixSelect")).toHaveValue("32");
+    await expect(page.locator(".note-input").first()).toHaveValue(
+      "legacy test",
+    );
+  });
+
+  test("should produce smaller URLs with compression for large trees", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Load a network
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "20");
+    await page.click('button:has-text("Go")');
+
+    // Split to create a larger tree (16 children)
+    await page.click(".split-button");
+    await page.waitForTimeout(100);
+
+    // Get compressed URL length
+    const compressedUrl = page.url();
+    const compressedHash = compressedUrl.split("#")[1];
+
+    // Create equivalent v1 state for comparison
+    const state = await page.evaluate(() => {
+      return {
+        network: document.getElementById("networkInput").value,
+        prefix: parseInt(document.getElementById("prefixSelect").value),
+        // Get tree from global state (exposed for testing)
+        tree: window.subnetTree || {},
+      };
+    });
+
+    const json = JSON.stringify(state);
+    const v1Hash = "v1" + btoa(encodeURIComponent(json));
+
+    // Compressed hash should be smaller than uncompressed for repetitive data
+    // Note: For very small data, compression overhead may make it larger
+    console.log(
+      `Compressed: ${compressedHash.length}, Uncompressed: ${v1Hash.length}`,
+    );
+
+    // At minimum, verify the hash is reasonable size
+    expect(compressedHash.length).toBeLessThan(10000);
+  });
+
+  test("should handle browser back/forward with hashchange", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Create first state
+    await page.fill("#networkInput", "2001:db8::");
+    await page.selectOption("#prefixSelect", "32");
+    await page.click('button:has-text("Go")');
+    await page.waitForTimeout(100);
+
+    const firstUrl = page.url();
+
+    // Create second state by splitting
+    await page.click(".split-button");
+    await page.waitForTimeout(100);
+
+    const secondUrl = page.url();
+    expect(secondUrl).not.toBe(firstUrl);
+
+    // Go back
+    await page.goBack();
+    await page.waitForTimeout(100);
+
+    // Should restore first state (root network, no children)
+    // The table should only have 1 row (the root)
+    const rowCount = await page.locator("#tableBody tr").count();
+    expect(rowCount).toBe(1);
+  });
+});

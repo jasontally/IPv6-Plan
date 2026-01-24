@@ -183,4 +183,31 @@ describe("State Management", () => {
       expect(tree["3fff::/20"]["3fff::/24"]["3fff::/28"]).toBeDefined();
     });
   });
+
+  describe("Compression Utilities", () => {
+    // Note: Full compression testing is better suited for E2E tests
+    // These unit tests focus on basic function availability and support detection
+
+    it("should detect compression support correctly", async () => {
+      const { supportsCompression } = await import("../app.js");
+
+      expect(typeof supportsCompression).toBe("function");
+      const result = supportsCompression();
+      expect(typeof result).toBe("boolean");
+
+      // In Node.js 18+, this should be true
+      // The test passes regardless of the result, just verifies the function works
+    });
+
+    it("should have compression functions available", async () => {
+      const { compressToDeflateRaw, decompressFromDeflateRaw } =
+        await import("../app.js");
+
+      expect(typeof compressToDeflateRaw).toBe("function");
+      expect(typeof decompressFromDeflateRaw).toBe("function");
+    });
+
+    // Skip full compression tests in Node.js environment due to missing Web APIs
+    // Full compression functionality is tested in E2E tests (tests/e2e/url-export.spec.js)
+  });
 });

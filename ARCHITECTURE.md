@@ -316,6 +316,45 @@ Compares two CIDR addresses numerically by their IPv6 address bytes.
 - Returns `false` on parse errors (invalid hash)
 - Caller handles fallback (load default network)
 
+### State Persistence with Compression
+
+**Version Markers:**
+
+- `v1` - Base64 encoding (current/legacy format)
+- `v2` - Deflate-raw compression (new compressed format)
+
+**Saving (`saveState`):** (async)
+
+1. Create state object: `{network, prefix, tree}`
+2. Serialize to JSON
+3. Check for CompressionStream support:
+   - If supported: Use deflate-raw compression, encode as base64, prefix with `v2`
+   - If not supported: URI encode, base64 encode, prefix with `v1`
+4. Set as URL hash
+
+**Loading (`loadState`):** (async)
+
+1. Read URL hash
+2. Parse version marker prefix:
+   - `v2`: Decode base64, decompress with deflate-raw, parse JSON
+   - `v1`: Decode base64, URI decode, parse JSON
+   - No marker: Legacy fallback (decode base64, URI decode, parse JSON)
+3. Restore `rootNetwork`, `rootPrefix`, `subnetTree`
+4. Update input fields
+5. Trigger `render()`
+
+**Browser Support:**
+
+- Compression Streams API available in modern browsers (Chrome 80+, Firefox 113+, Safari 16.4+)
+- Fallback to base64 for unsupported browsers ensures functionality
+
+**Compression Benefits:**
+
+- Smaller URL hashes, especially for larger subnet trees with repetitive data
+- Compression ratio varies: small trees may see minimal benefit, large trees with many subnets can see significant reduction
+- Reduced URL length helps prevent truncation issues in some contexts
+- Backward compatible with existing shared URLs
+
 ## Rendering Flow
 
 1. Clear table body
@@ -534,6 +573,34 @@ npm test:e2e:headed
 - `stress.spec.js` - E2E tests for large trees
 - `color-picker.spec.js` - E2E tests for color picker functionality
 - `subnet-math.spec.js` - E2E tests for subnet math visual verification
+
+### Testing Philosophy
+
+**When to Use Unit Tests vs E2E Tests:**
+
+**Unit Tests are ideal for:**
+
+- Pure functions with deterministic inputs/outputs
+- Business logic algorithms (IPv6 parsing, subnet math)
+- Data structure operations (tree manipulation)
+- Error handling for invalid inputs
+- Functions that don't depend on browser APIs
+
+**E2E Tests are required for:**
+
+- Browser-specific APIs (Compression Streams, Clipboard, File handling)
+- DOM interactions and UI behavior
+- Cross-browser compatibility testing
+- Integration of multiple systems working together
+- Features that rely on browser environment (URL sharing, downloads)
+
+**Anti-Pattern to Avoid:**
+
+- **Never modify production code to work around unit test environment limitations**
+- If a unit test fails due to missing browser APIs, move the test to E2E
+- Don't add mocks for browser-specific functionality - test in real browsers
+
+**Example:** The compression utilities were initially tested with unit tests, but Node.js lacks the `blob.arrayBuffer()` Web API. Instead of modifying the compression code to work in Node.js, the tests were moved to E2E where they test real browser behavior.
 
 ### Test Coverage
 

@@ -55,7 +55,35 @@ v6calc/
       - Test the application manually after changes
       - Run automated tests: `npm test` and `npm run test:e2e`
 
-      ### Writing Tests
+      ### Testing Philosophy
+
+**When to Use Unit Tests vs E2E Tests:**
+
+**Unit Tests are ideal for:**
+
+- Pure functions with deterministic inputs/outputs
+- Business logic algorithms (IPv6 parsing, subnet math)
+- Data structure operations (tree manipulation)
+- Error handling for invalid inputs
+- Functions that don't depend on browser APIs
+
+**E2E Tests are required for:**
+
+- Browser-specific APIs (Compression Streams, Clipboard, File handling)
+- DOM interactions and UI behavior
+- Cross-browser compatibility testing
+- Integration of multiple systems working together
+- Features that rely on browser environment (URL sharing, downloads)
+
+**Anti-Pattern to Avoid:**
+
+- **Never modify production code to work around unit test environment limitations**
+- If a unit test fails due to missing browser APIs, move the test to E2E
+- Don't add mocks for browser-specific functionality - test in real browsers
+
+**Example:** The compression utilities were initially tested with unit tests, but Node.js lacks the `blob.arrayBuffer()` Web API. Instead of modifying the compression code to work in Node.js, the tests were moved to E2E where they test real browser behavior.
+
+### Writing Tests
 
 **Unit Tests Location:** `tests/*.test.js`
 

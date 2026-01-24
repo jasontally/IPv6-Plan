@@ -34,3 +34,6 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Implementation plans (completed)
+*_PLAN.md

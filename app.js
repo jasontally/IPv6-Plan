@@ -17,6 +17,12 @@ let currentColorTarget = null;
 /** @type {HTMLButtonElement|null} Current button being colored */
 let currentColorButton = null;
 
+/** @type {string} Version marker for base64 encoding (current format) */
+const STATE_VERSION_1 = "v1";
+
+/** @type {string} Version marker for deflate-raw compression */
+const STATE_VERSION_2 = "v2";
+
 /** @type {string[]} Color palette for row highlighting */
 const COLORS = [
   "#FFE5E5", // Soft Pink
@@ -445,7 +451,7 @@ function compareCIDR(a, b) {
  * @param {number|null} targetPrefix - Target prefix length, or null for nibble-aligned (default)
  * @returns {void}
  */
-function splitSubnet(cidr, targetPrefix = null) {
+async function splitSubnet(cidr, targetPrefix = null) {
   const [addr, prefix] = cidr.split("/");
   const prefixNum = parseInt(prefix);
 
@@ -498,7 +504,7 @@ function splitSubnet(cidr, targetPrefix = null) {
     createIntermediateLevels(cidr, target);
   }
 
-  saveState();
+  await saveState();
   render();
 }
 
@@ -534,7 +540,7 @@ function isSplit(cidr) {
  * @param {number} targetPrefix - Target prefix length to join back to
  * @returns {void}
  */
-function joinSubnet(cidr, targetPrefix) {
+async function joinSubnet(cidr, targetPrefix) {
   const [addr, currentPrefix] = cidr.split("/");
   const currentPrefixNum = parseInt(currentPrefix);
 
@@ -546,7 +552,7 @@ function joinSubnet(cidr, targetPrefix) {
   // Recursively delete all descendants from parent node
   deleteDescendants(parentCidr);
 
-  saveState();
+  await saveState();
   render();
 }
 
@@ -691,10 +697,10 @@ function render() {
     noteInput.className = "note-input";
     noteInput.id = `note-${row.cidr.replace(/[\/:]/g, "-")}`;
     noteInput.value = row.note;
-    noteInput.addEventListener("input", () => {
+    noteInput.addEventListener("input", async () => {
       const node = getSubnetNode(row.cidr);
       node._note = noteInput.value;
-      saveState();
+      await saveState();
     });
     noteTd.appendChild(noteLabel);
     noteTd.appendChild(noteInput);
@@ -920,19 +926,92 @@ function showColorPicker(cidr, button) {
  * @param {string} color - Color value to set (hex color or empty string to clear)
  * @returns {void}
  */
-function setColor(color) {
+async function setColor(color) {
   const node = getSubnetNode(currentColorTarget);
   node._color = color;
   currentColorButton.style.background = color || "white";
-  saveState();
+  await saveState();
   render();
 }
 
 /**
- * Save current state to URL hash for sharing/persistence
- * @returns {void}
+ * Compress text using deflate-raw compression via Compression Streams API
+ * @param {string} text - Text to compress
+ * @returns {Promise<string>} Base64-encoded compressed data
  */
-function saveState() {
+async function compressToDeflateRaw(text) {
+  const encoder = new TextEncoder();
+  const uint8Array = encoder.encode(text);
+  const cs = new CompressionStream("deflate-raw");
+  const writer = cs.writable.getWriter();
+  const reader = cs.readable.getReader();
+  const chunks = [];
+
+  writer.write(uint8Array);
+  writer.close();
+
+  let done = false;
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) chunks.push(value);
+  }
+
+  const blob = new Blob(chunks, { type: "application/octet-stream" });
+  const arrayBuffer = await blob.arrayBuffer();
+  const compressed = new Uint8Array(arrayBuffer);
+  return btoa(String.fromCharCode(...compressed));
+}
+
+/**
+ * Decompress deflate-raw compressed data via Compression Streams API
+ * @param {string} base64 - Base64-encoded compressed data
+ * @returns {Promise<string>} Decompressed text
+ */
+async function decompressFromDeflateRaw(base64) {
+  const binaryString = atob(base64);
+  const buffer = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    buffer[i] = binaryString.charCodeAt(i);
+  }
+
+  const ds = new DecompressionStream("deflate-raw");
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(buffer);
+      controller.close();
+    },
+  });
+  const decompressedStream = stream.pipeThrough(ds);
+  const decoder = new TextDecoder();
+  let result = "";
+
+  const reader = decompressedStream.getReader();
+  let done = false;
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) result += decoder.decode(value, { stream: !done });
+  }
+
+  return result;
+}
+
+/**
+ * Check if browser supports Compression Streams API
+ * @returns {boolean} True if deflate-raw compression is supported
+ */
+function supportsCompression() {
+  return (
+    "CompressionStream" in globalThis && "DecompressionStream" in globalThis
+  );
+}
+
+/**
+ * Save current state to URL hash for sharing/persistence
+ * @returns {Promise<void>}
+ */
+async function saveState() {
   if (!rootNetwork) return;
 
   const state = {
@@ -942,20 +1021,48 @@ function saveState() {
   };
 
   const json = JSON.stringify(state);
+
+  if (supportsCompression()) {
+    try {
+      // Try deflate-raw compression with v2 marker
+      const compressed = await compressToDeflateRaw(json);
+      window.location.hash = `${STATE_VERSION_2}${compressed}`;
+      return;
+    } catch (e) {
+      console.warn("Compression failed, falling back to base64:", e);
+    }
+  }
+
+  // Fallback: base64 encoding with v1 marker
   const compressed = btoa(encodeURIComponent(json));
-  window.location.hash = compressed;
+  window.location.hash = `${STATE_VERSION_1}${compressed}`;
 }
 
 /**
  * Load state from URL hash
- * @returns {boolean} True if state was successfully loaded, false otherwise
+ * @returns {Promise<boolean>} True if state was successfully loaded, false otherwise
  */
-function loadState() {
+async function loadState() {
   const hash = window.location.hash.slice(1);
   if (!hash) return false;
 
   try {
-    const json = decodeURIComponent(atob(hash));
+    let json = "";
+
+    // Check version marker
+    if (hash.startsWith(STATE_VERSION_2)) {
+      // v2: deflate-raw compressed
+      const compressed = hash.slice(STATE_VERSION_2.length);
+      json = await decompressFromDeflateRaw(compressed);
+    } else if (hash.startsWith(STATE_VERSION_1)) {
+      // v1: base64 encoded (legacy format)
+      const compressed = hash.slice(STATE_VERSION_1.length);
+      json = decodeURIComponent(atob(compressed));
+    } else {
+      // No version marker: assume legacy format (backward compatibility)
+      json = decodeURIComponent(atob(hash));
+    }
+
     const state = JSON.parse(json);
 
     rootNetwork = state.network;
@@ -968,6 +1075,7 @@ function loadState() {
     render();
     return true;
   } catch (e) {
+    console.warn("Failed to load state from hash:", e);
     return false;
   }
 }
@@ -988,7 +1096,7 @@ function loadDocPrefix(address, prefix) {
  * Load a network based on input field values
  * @returns {void}
  */
-function loadNetwork() {
+async function loadNetwork() {
   const input = document.getElementById("networkInput").value.trim();
   const prefix = parseInt(document.getElementById("prefixSelect").value);
   const errorDiv = document.getElementById("error");
@@ -1022,7 +1130,7 @@ function loadNetwork() {
   const rootCidr = `${rootNetwork}/${rootPrefix}`;
   subnetTree[rootCidr] = { _note: "", _color: "" };
 
-  saveState();
+  await saveState();
   render();
 }
 
@@ -1115,23 +1223,29 @@ function populatePrefixSelect() {
  * Initialize the application
  * @returns {void}
  */
-function init() {
+async function init() {
   populatePrefixSelect();
 
-  if (!loadState()) {
+  if (!(await loadState())) {
     document.getElementById("networkInput").value = "3fff::";
     document.getElementById("prefixSelect").value = "20";
     loadNetwork();
   }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => init());
+
+// Add hashchange event handler for browser back/forward navigation
+window.addEventListener("hashchange", async () => {
+  await loadState();
+});
 
 // Attach functions to window for inline onclick handlers (required for ES6 modules)
 window.loadNetwork = loadNetwork;
 window.loadDocPrefix = loadDocPrefix;
 window.shareURL = shareURL;
 window.exportCSV = exportCSV;
+window.subnetTree = subnetTree;
 
 // ES6 exports for testing (works in both browser modules and Vitest)
 export {
@@ -1151,6 +1265,9 @@ export {
   joinSubnet,
   deleteDescendants,
   render,
+  compressToDeflateRaw,
+  decompressFromDeflateRaw,
+  supportsCompression,
   saveState,
   loadState,
   loadNetwork,

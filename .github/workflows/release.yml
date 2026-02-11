@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"
+
+      - name: Get version from VERSION file
+        id: get_file_version
+        run: |
+          FILE_VERSION="$(cat VERSION)"
+          echo "FILE_VERSION=$FILE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "file_version=$FILE_VERSION"
+
+      - name: Verify versions match
+        run: |
+          if [ "${{ steps.get_version.outputs.VERSION }}" != "${{ steps.get_file_version.outputs.FILE_VERSION }}" ]; then
+            echo "Version mismatch!"
+            echo "Tag version: ${{ steps.get_version.outputs.VERSION }}"
+            echo "File version: ${{ steps.get_file_version.outputs.FILE_VERSION }}"
+            exit 1
+          fi
+          echo "Versions match: ${{ steps.get_version.outputs.VERSION }}"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+
+          # Get the previous tag
+          PREVIOUS_TAG="$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")"
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # No previous tag, use all commits
+            COMMITS="$(git log --pretty=format:"- %s (%h)" --no-merges)"
+          else
+            # Get commits between tags
+            COMMITS="$(git log --pretty=format:"- %s (%h)" --no-merges "${PREVIOUS_TAG}..HEAD")"
+          fi
+
+          # Build release notes file using grouping
+          {
+            echo "## Changes in v${VERSION}"
+            echo ""
+            echo "${COMMITS}"
+            echo ""
+            echo "---"
+            echo ""
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...v${VERSION}"
+            fi
+          } > release_notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.get_version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

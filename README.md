@@ -1,5 +1,7 @@
 # IPv6 Subnet Planner
 
+**Version**: 0.7.2
+
 A web-based tool for hierarchically planning and documenting IPv6 address space allocations.
 
 ## **[Try the Live App](https://v6plan.jasontally.com/)**

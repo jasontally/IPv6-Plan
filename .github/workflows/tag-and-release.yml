@@ -54,13 +54,10 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "new_version=$NEW_VERSION"
 
-          # Update package-lock.json
-          npm install --package-lock-only
-
           # Commit the version bump
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add VERSION index.html README.md package.json package-lock.json
+          git add VERSION index.html README.md package.json
           git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
           git push
 

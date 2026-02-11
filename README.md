@@ -1,6 +1,6 @@
 # IPv6 Subnet Planner
 
-**Version**: 0.7.3
+**Version**: 0.7.4
 
 A web-based tool for hierarchically planning and documenting IPv6 address space allocations.
 

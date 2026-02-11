@@ -202,7 +202,7 @@ function main() {
       "  node scripts/version.js --set-version X.Y.Z # Set specific version",
     );
     console.log(
-      "  node scripts/version.js --sync              # Sync all files to VERSION file",
+      "  node scripts/version.js --sync             # Sync all files to VERSION file",
     );
     console.log("");
     console.log("Current version:", manager.getCurrentVersion());
@@ -212,13 +212,13 @@ function main() {
   try {
     if (args.includes("--increment-patch")) {
       const newVersion = manager.incrementPatch();
-      console.log(`Incremented patch version to ${newVersion}`);
+      console.log(newVersion);
     } else if (args.includes("--increment-minor")) {
       const newVersion = manager.incrementMinor();
-      console.log(`Incremented minor version to ${newVersion}`);
+      console.log(newVersion);
     } else if (args.includes("--increment-major")) {
       const newVersion = manager.incrementMajor();
-      console.log(`Incremented major version to ${newVersion}`);
+      console.log(newVersion);
     } else if (args.includes("--get-version")) {
       console.log(manager.getCurrentVersion());
     } else if (args.includes("--set-version")) {

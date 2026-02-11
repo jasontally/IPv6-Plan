@@ -61,15 +61,6 @@ const VERSION_LOCATIONS = [
     ],
   },
   {
-    file: "package-lock.json",
-    patterns: [
-      {
-        regex: /"version":\s*"(\d+\.\d+\.\d+)"/g,
-        template: '"version": "{{version}}"',
-      },
-    ],
-  },
-  {
     file: "VERSION",
     patterns: [{ regex: /^(\d+\.\d+\.\d+)$/gm, template: "{{version}}" }],
   },

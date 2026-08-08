@@ -84,7 +84,9 @@ test.describe("Accessibility (a11y)", () => {
     expect(normalizedTexts).toContain("Contains");
     expect(normalizedTexts).toContain("Note");
     expect(normalizedTexts).toContain("Color");
-    expect(normalizedTexts).toContain("Split");
+    // The Split header also embeds the auto-split step selector, so match
+    // by substring rather than exact equality.
+    expect(normalizedTexts.some((t) => t.includes("Split"))).toBe(true);
     expect(normalizedTexts).toContain("Join");
   });
 

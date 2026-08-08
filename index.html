@@ -288,6 +288,23 @@
         cursor: not-allowed;
       }
 
+      .split-header {
+        white-space: nowrap;
+      }
+
+      .auto-split-select {
+        margin-left: 6px;
+        padding: 1px 2px;
+        border: none;
+        border-radius: 3px;
+        font-size: 10px;
+        font-family: monospace;
+        background: white;
+        color: #059669;
+        cursor: pointer;
+        vertical-align: middle;
+      }
+
       .join-button {
         background: #dc2626;
         color: white;
@@ -475,7 +492,17 @@
             <th>Contains</th>
             <th style="width: 40%">Note</th>
             <th>Color</th>
-            <th style="background: #059669; color: white">Split</th>
+            <th style="background: #059669; color: white" class="split-header">
+              Split
+              <select
+                id="autoSplitBitsSelect"
+                class="auto-split-select"
+                title="Auto split step size"
+              >
+                <option value="4">4 bit</option>
+                <option value="8">8 bit</option>
+              </select>
+            </th>
             <th
               id="joinHeader"
               colspan="12"

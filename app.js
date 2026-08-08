@@ -23,6 +23,9 @@ const STATE_VERSION_1 = "v1";
 /** @type {string} Version marker for deflate-raw compression */
 const STATE_VERSION_2 = "v2";
 
+/** @type {number} Auto-split step in bits (4 = nibble, 8 = byte) */
+let autoSplitBits = 4;
+
 /** @type {string[]} Color palette for row highlighting */
 const COLORS = [
   "#FFE5E5", // Soft Pink
@@ -275,6 +278,21 @@ function getNibbleBoundaries(startPrefix, endPrefix) {
 }
 
 /**
+ * Calculate the auto-split target prefix for a given prefix length
+ * If the prefix is nibble-aligned (multiple of 4), adds the configured step
+ * (4 bits = nibble, 8 bits = byte). Otherwise rounds up to the next nibble
+ * boundary regardless of step. Capped at /64.
+ * @param {number} prefix - Current prefix length
+ * @param {number} bits - Split step in bits (defaults to global autoSplitBits)
+ * @returns {number} Target prefix length, capped at 64
+ */
+function getAutoSplitTarget(prefix, bits = autoSplitBits) {
+  const isNibbleAligned = prefix % 4 === 0;
+  const target = isNibbleAligned ? prefix + bits : Math.ceil(prefix / 4) * 4;
+  return Math.min(target, 64);
+}
+
+/**
  * Create one level of child subnets under a parent
  * @param {string} parentCidr - CIDR notation of the parent subnet
  * @param {number} targetPrefix - Target prefix length for children
@@ -459,11 +477,10 @@ async function splitSubnet(cidr, targetPrefix = null) {
 
   const bytes = parseIPv6(addr);
 
-  // Determine target prefix (nibble-aligned by default)
+  // Determine target prefix (auto-split step by default)
   let target = targetPrefix;
   if (target === null) {
-    const isAligned = prefixNum % 4 === 0;
-    target = isAligned ? prefixNum + 4 : Math.ceil(prefixNum / 4) * 4;
+    target = getAutoSplitTarget(prefixNum);
   }
 
   if (target <= prefixNum || target > 64) return;
@@ -733,19 +750,16 @@ function render() {
     splitSelect.className = "split-select";
     splitSelect.ariaLabel = `Select split target prefix for ${row.cidr}`;
 
-    const isAligned = row.prefix % 4 === 0;
-    const nextNibble = isAligned
-      ? row.prefix + 4
-      : Math.ceil(row.prefix / 4) * 4;
+    const autoTarget = getAutoSplitTarget(row.prefix);
 
     const autoOption = document.createElement("option");
     autoOption.value = "auto";
-    autoOption.textContent = `Auto (→/${nextNibble})`;
+    autoOption.textContent = `Auto (→/${autoTarget})`;
     autoOption.style.fontWeight = "bold";
     splitSelect.appendChild(autoOption);
 
     for (let p = row.prefix + 1; p <= 64; p++) {
-      if (p === nextNibble) continue;
+      if (p === autoTarget) continue;
       const numChildren = Math.pow(2, p - row.prefix);
       if (numChildren > 1024) continue;
 
@@ -1018,6 +1032,7 @@ async function saveState() {
     network: rootNetwork,
     prefix: rootPrefix,
     tree: subnetTree,
+    autoSplitBits,
   };
 
   const json = JSON.stringify(state);
@@ -1068,9 +1083,13 @@ async function loadState() {
     rootNetwork = state.network;
     rootPrefix = state.prefix;
     subnetTree = state.tree;
+    autoSplitBits = state.autoSplitBits === 8 ? 8 : 4;
 
     document.getElementById("networkInput").value = rootNetwork;
     document.getElementById("prefixSelect").value = rootPrefix;
+
+    const autoSplitSelect = document.getElementById("autoSplitBitsSelect");
+    if (autoSplitSelect) autoSplitSelect.value = autoSplitBits.toString();
 
     render();
     return true;
@@ -1226,10 +1245,25 @@ function populatePrefixSelect() {
 async function init() {
   populatePrefixSelect();
 
+  // Wire the auto-split step selector (4-bit nibble vs 8-bit byte)
+  const autoSplitSelect = document.getElementById("autoSplitBitsSelect");
+  if (autoSplitSelect) {
+    autoSplitSelect.addEventListener("change", () => {
+      autoSplitBits = parseInt(autoSplitSelect.value);
+      saveState();
+      render();
+    });
+  }
+
   if (!(await loadState())) {
     document.getElementById("networkInput").value = "3fff::";
     document.getElementById("prefixSelect").value = "20";
     loadNetwork();
+  }
+
+  // Ensure the selector reflects the active autoSplitBits value
+  if (autoSplitSelect) {
+    autoSplitSelect.value = autoSplitBits.toString();
   }
 }
 
@@ -1255,6 +1289,7 @@ export {
   getChildSubnet,
   getChildSubnetAtTarget,
   getNibbleBoundaries,
+  getAutoSplitTarget,
   createIntermediateLevel,
   createIntermediateLevels,
   getSubnetCount,

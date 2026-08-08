@@ -119,8 +119,8 @@ numChildren = 2^(targetPrefix - currentPrefix)
 
 1. Parse CIDR to get address and prefix
 2. Validate prefix < 64 (cannot split /64)
-3. Determine target prefix (nibble-aligned by default)
-4. Calculate nibble boundaries between current and target prefix
+3. Determine target prefix: if no target given, use `getAutoSplitTarget(prefix)` which rounds up to the next auto-split step boundary (4-bit nibble by default, or 8-bit byte when the user selects 8 bit in the Split header). The auto-split step is stored in the global `autoSplitBits` and persisted in the URL state.
+4. Calculate nibble boundaries between current and target prefix (always 4-bit; the auto-step setting does not change intermediate levels)
 5. If single boundary at target, create children directly
 6. If multiple boundaries, call `createIntermediateLevels()` to build hierarchy
 7. Call `saveState()` and `render()`
@@ -131,6 +131,15 @@ numChildren = 2^(targetPrefix - currentPrefix)
 - For `/20` splitting to `/24`, the second child is `3fff:100::/24`, NOT `3fff:1000::/24`
 - Intermediate levels inherit parent `_note` and `_color` to all descendants
 - Splitting with custom target prefixes is supported (e.g., `/32 → /34`)
+
+### Auto-Split Step (`getAutoSplitTarget`)
+
+The green Split column header exposes a selector for the auto-split step size:
+
+- **4 bit (nibble, default):** rounds up to the next multiple of 4 (e.g. `/40` → `/44`)
+- **8 bit (byte):** rounds up to the next multiple of 8 (e.g. `/40` → `/48`, `/48` → `/56`, `/56` → `/64`), capped at `/64`
+
+The selection is held in the global `autoSplitBits` (4 or 8) and persisted in the URL state via `saveState()`/`loadState()`. It affects only the **Auto** target that `splitSubnet` uses when no explicit target is supplied. Intermediate levels produced by splits that cross multiple nibble boundaries always use 4-bit nibble boundaries (see `getNibbleBoundaries`), independent of this setting.
 
 ### Child Subnet Calculation (`getChildSubnetAtTarget`)
 

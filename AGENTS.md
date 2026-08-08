@@ -95,6 +95,7 @@ v6calc/
 - `create-intermediate-extra.test.js` - Tests for additional intermediate level scenarios
 - `delete-descendants.test.js` - Tests for deleteDescendants function
 - `nibble-boundaries.test.js` - Tests for getNibbleBoundaries function
+- `auto-split-target.test.js` - Tests for getAutoSplitTarget (4-bit and 8-bit auto step)
 
 **E2E Tests Location:** `tests/e2e/*.spec.js`
 
@@ -106,6 +107,7 @@ v6calc/
 - `stress.spec.js` - E2E tests for large trees
 - `color-picker.spec.js` - E2E tests for color picker functionality
 - `subnet-math.spec.js` - E2E tests for subnet math visual verification (split displays, sequential addresses, format correctness)
+- `auto-split-bits.spec.js` - E2E tests for the 4-bit/8-bit auto-split step selector and URL persistence
 
 ### Accessibility Requirements
 
@@ -168,6 +170,122 @@ v6calc/
 - [ ] Color contrast meets WCAG AA (4.5:1 for normal text)
 - [ ] No color-only indicators for information
 - [ ] Dynamic content changes are announced to screen readers
+
+## Critical Algorithms
+
+### IPv6 Address Handling
+
+**Always use these functions:**
+
+- `parseIPv6(addr)` - Parse string to 16-byte Uint8Array
+- `formatIPv6(bytes)` - Format bytes to compressed RFC 5952 string
+- `applyPrefix(bytes, prefix)` - Mask to network address
+- `compareCIDR(a, b)` - Numerically compare CIDR addresses
+
+**Never:**
+
+- Parse IPv6 manually
+- Display expanded addresses (always use `formatIPv6`)
+- Sort addresses as strings (use `compareCIDR`)
+
+### Subnet Splitting
+
+**Split calculation:**
+
+The Auto split target is computed by `getAutoSplitTarget(prefix, bits)`, which rounds up to the next boundary of the configured step (`autoSplitBits`, 4 or 8) and caps at `/64`. The step is selectable from the green Split column header and persisted in the URL.
+
+```
+autoTarget = (prefix % bits === 0) ? prefix + bits : Math.ceil(prefix / bits) * bits
+autoTarget = min(autoTarget, 64)      // capped at /64
+numChildren = 2^(autoTarget - prefix)
+```
+
+With the default 4-bit step this matches the previous nibble logic (`/20` → `/24`). With 8-bit a `/40` autosplits to `/48`. Intermediate levels still use 4-bit nibble boundaries regardless of the step.
+
+**Example child addresses for `/20` split:**
+
+- Child 0: `3fff::/24`
+- Child 1: `3fff:100::/24` (note: `100`, not `1000`)
+- Child 2: `3fff:200::/24`
+- ...
+
+**Always use `getChildSubnetAtTarget(bytes, prefix, targetPrefix, index)`** to calculate child addresses.
+
+**Intermediate Level Creation:**
+
+When splitting across multiple nibble boundaries (e.g., `/20 → /28`), the app automatically creates intermediate levels:
+
+- `/20 → /28` creates `/24` intermediate level, then `/28` children (273 rows total)
+- `/20 → /30` creates `/24 → /28 → /30` hierarchy (1297 rows total)
+- `/20 → /24` directly creates `/24` children (16 rows, no intermediates needed)
+
+**Key functions:**
+
+- `getNibbleBoundaries(startPrefix, endPrefix)` - Calculate intermediate nibble boundaries (always 4-bit step)
+- `getAutoSplitTarget(prefix, bits)` - Compute the Auto split target for the configured step (4 or 8 bits), capped at /64
+- `createIntermediateLevel(parentCidr, targetPrefix)` - Create one level of children
+- `createIntermediateLevels(parentCidr, targetPrefix)` - Recursively create all intermediate levels
+- `deleteDescendants(cidr)` - Recursively delete all descendants (used by joinSubnet)
+
+### Row Span Calculation
+
+Join buttons must visually span all descendant rows:
+
+1. Ancestor at level 0 appears in all rows that have `ancestry[0] === ancestorCidr`
+2. Calculate count by iterating from first child until ancestry changes
+3. Apply `rowspan=count` only on first row
+4. Use key format: `${ancestorCidr}-${level}` for tracking
+
+## Testing Strategy
+
+The codebase now includes automated tests with Vitest (unit tests) and Playwright (E2E tests).
+
+### Running Tests
+
+**Unit Tests (Vitest):**
+
+```bash
+# Run all unit tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with UI
+npm test:ui
+
+# Run tests once and exit
+npm test:run
+```
+
+**E2E Tests (Playwright):**
+
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install
+
+# Run E2E tests
+npm test:e2e
+
+# Run E2E tests in UI mode
+npm test:e2e:ui
+
+# Run E2E tests in headed mode (visible browser)
+npm test:e2e:headed
+```
+
+### Writing Tests
+
+**Unit Tests Location:** `tests/*.test.js`
+
+- `ipv6.test.js` - Tests for parseIPv6, formatIPv6, applyPrefix, compareCIDR
+- `subnet-tree.test.js` - Tests for splitSubnet, joinSubnet, getSubnetNode, isSplit
+- `state.test.js` - Tests for saveState, loadState, loadNetwork
+
+**E2E Tests Location:** `tests/e2e/*.spec.js`
+
+- `split-join.spec.js` - Tests for split, join operations, UI interactions
+- `url-export.spec.js` - Tests for URL sharing, CSV export, download handling
 
 ### Manual Testing
 

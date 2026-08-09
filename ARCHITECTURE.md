@@ -139,7 +139,7 @@ The green Split column header exposes a selector for the auto-split step size:
 - **4 bit (nibble, default):** rounds up to the next multiple of 4 (e.g. `/40` → `/44`)
 - **8 bit (byte):** rounds up to the next multiple of 8 (e.g. `/40` → `/48`, `/48` → `/56`, `/56` → `/64`), capped at `/64`
 
-The selection is held in the global `autoSplitBits` (4 or 8) and persisted in the URL state via `saveState()`/`loadState()`. It affects only the **Auto** target that `splitSubnet` uses when no explicit target is supplied. Intermediate levels produced by splits that cross multiple nibble boundaries always use 4-bit nibble boundaries (see `getNibbleBoundaries`), independent of this setting.
+The selection is held in the global `autoSplitBits` (4 or 8) and persisted in the URL state via `saveState()`/`loadState()`. It affects only the **Auto** target that `splitSubnet` uses when no explicit target is supplied, and the intermediate level boundaries (via `getNibbleBoundaries`). With 8-bit, intermediates are placed at 8-bit intervals (e.g. `/40 → /56` creates a `/48` intermediate, not `/44 /48 /52`), so join buttons match the split granularity.
 
 ### Child Subnet Calculation (`getChildSubnetAtTarget`)
 

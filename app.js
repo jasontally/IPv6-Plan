@@ -240,9 +240,10 @@ function getChildSubnetAtTarget(bytes, prefix, targetPrefix, index) {
  * Calculate nibble boundaries between two prefix lengths
  * @param {number} startPrefix - Starting prefix length
  * @param {number} endPrefix - Ending prefix length
- * @returns {number[]} Array of prefix lengths representing nibble boundaries
+ * @param {number} step - Boundary step in bits (4 = nibble, 8 = byte)
+ * @returns {number[]} Array of prefix lengths representing boundaries
  */
-function getNibbleBoundaries(startPrefix, endPrefix) {
+function getNibbleBoundaries(startPrefix, endPrefix, step = 4) {
   if (startPrefix >= endPrefix) {
     return [startPrefix];
   }
@@ -252,13 +253,13 @@ function getNibbleBoundaries(startPrefix, endPrefix) {
 
   // Skip the start prefix if it's exactly on a nibble boundary
   if (current === startPrefix) {
-    current += 4;
+    current += step;
   }
 
-  // Add all nibble boundaries up to but not including endPrefix
+  // Add all boundaries up to but not including endPrefix
   while (current < endPrefix) {
     boundaries.push(current);
-    current += 4;
+    current += step;
   }
 
   // Handle endPrefix
@@ -361,7 +362,11 @@ function createIntermediateLevels(parentCidr, targetPrefix) {
   const [addr, prefix] = parentCidr.split("/");
   const prefixNum = parseInt(prefix);
 
-  const boundaries = getNibbleBoundaries(prefixNum, targetPrefix);
+  const boundaries = getNibbleBoundaries(
+    prefixNum,
+    targetPrefix,
+    autoSplitBits,
+  );
 
   if (boundaries.length === 1) {
     // Single boundary, create directly
@@ -491,7 +496,7 @@ async function splitSubnet(cidr, targetPrefix = null) {
   const node = getSubnetNode(cidr);
 
   // Determine if we need intermediate levels
-  const boundaries = getNibbleBoundaries(prefixNum, target);
+  const boundaries = getNibbleBoundaries(prefixNum, target, autoSplitBits);
 
   if (boundaries.length === 1 && boundaries[0] === target) {
     // Single boundary at target, create children directly

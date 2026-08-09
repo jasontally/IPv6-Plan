@@ -137,4 +137,58 @@ describe("getNibbleBoundaries", () => {
     const result = getNibbleBoundaries(20, 16);
     expect(result).toEqual([20]);
   });
+
+  describe("8-bit step", () => {
+    it("should return [28] for 20→28 (no intermediate)", () => {
+      expect(getNibbleBoundaries(20, 28, 8)).toEqual([28]);
+    });
+
+    it("should return [28, 36] for 20→36", () => {
+      expect(getNibbleBoundaries(20, 36, 8)).toEqual([28, 36]);
+    });
+
+    it("should return [28, 36, 44] for 20→44", () => {
+      expect(getNibbleBoundaries(20, 44, 8)).toEqual([28, 36, 44]);
+    });
+
+    it("should return [48] for 40→48 (no intermediate)", () => {
+      expect(getNibbleBoundaries(40, 48, 8)).toEqual([48]);
+    });
+
+    it("should return [48, 56] for 40→56", () => {
+      expect(getNibbleBoundaries(40, 56, 8)).toEqual([48, 56]);
+    });
+
+    it("should return [24] for 16→24 (no intermediate)", () => {
+      expect(getNibbleBoundaries(16, 24, 8)).toEqual([24]);
+    });
+
+    it("should return [24, 32] for 16→32", () => {
+      expect(getNibbleBoundaries(16, 32, 8)).toEqual([24, 32]);
+    });
+
+    it("should return [24] for 21→24 (rounds up to nibble, direct)", () => {
+      expect(getNibbleBoundaries(21, 24, 8)).toEqual([24]);
+    });
+
+    it("should return [24, 32] for 21→32 (rounds up then 8-bit steps)", () => {
+      expect(getNibbleBoundaries(21, 32, 8)).toEqual([24, 32]);
+    });
+
+    it("should return [24] for 22→24 (rounds up to nibble, direct)", () => {
+      expect(getNibbleBoundaries(22, 24, 8)).toEqual([24]);
+    });
+
+    it("should return [24, 32] for 23→32 (rounds up then 8-bit steps)", () => {
+      expect(getNibbleBoundaries(23, 32, 8)).toEqual([24, 32]);
+    });
+
+    it("should return [24, 32, 40, 48] for 16→48", () => {
+      expect(getNibbleBoundaries(16, 48, 8)).toEqual([24, 32, 40, 48]);
+    });
+
+    it("should return [24, 32, 40, 48, 56, 64] for 16→64", () => {
+      expect(getNibbleBoundaries(16, 64, 8)).toEqual([24, 32, 40, 48, 56, 64]);
+    });
+  });
 });

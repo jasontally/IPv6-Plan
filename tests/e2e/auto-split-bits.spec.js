@@ -40,7 +40,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
     await expect(autoOption).toHaveText("Auto (→/48)");
   });
 
-  test("should split /20 into /28 via /24 intermediate with 8-bit auto", async ({
+  test("should split /20 directly into 256 /28s with 8-bit auto (no /24 intermediate)", async ({
     page,
   }) => {
     await page.fill("#networkInput", "3fff::");
@@ -52,14 +52,18 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
 
-    // Auto target /28 crosses the /24 nibble boundary, so intermediate
-    // levels remain 4-bit: 1 root + 16 /24 + 256 /28 = 273 rows
+    // 8-bit step: /20 → /28 is a single boundary, no intermediate
+    // 1 root + 256 children = 257 rows
     const subnetCells = page.locator(".subnet-cell");
-    await expect(subnetCells).toHaveCount(273);
-    await expect(subnetCells.nth(1)).toHaveText("3fff::/24");
+    await expect(subnetCells).toHaveCount(257);
+    await expect(subnetCells.nth(1)).toHaveText("3fff::/28");
+
+    // Join button should be /20 (root), not /24 (which would appear with 4-bit)
+    const joinBtn = page.locator(".join-button").first();
+    await expect(joinBtn).toHaveText("/20");
   });
 
-  test("should split /40 into /48 via /44 intermediate with 8-bit auto", async ({
+  test("should split /40 directly into 256 /48s with 8-bit auto (no /44 intermediate)", async ({
     page,
   }) => {
     await page.fill("#networkInput", "3fff::");
@@ -71,11 +75,43 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
 
-    // Auto target /48 crosses the /44 nibble boundary, so intermediate
-    // levels remain 4-bit: 1 root + 16 /44 + 256 /48 = 273 rows
+    // 8-bit step: /40 → /48 is a single boundary, no intermediate
+    // 1 root + 256 children = 257 rows
     const subnetCells = page.locator(".subnet-cell");
-    await expect(subnetCells).toHaveCount(273);
-    await expect(subnetCells.nth(1)).toHaveText("3fff::/44");
+    await expect(subnetCells).toHaveCount(257);
+    await expect(subnetCells.nth(1)).toHaveText("3fff::/48");
+
+    // Join button should be /40 (root), not /44
+    const joinBtn = page.locator(".join-button").first();
+    await expect(joinBtn).toHaveText("/40");
+  });
+
+  test("should use 8-bit intermediates for custom splits (skips /52 for /48→/57)", async ({
+    page,
+  }) => {
+    await page.fill("#networkInput", "3fff::");
+    await page.selectOption("#prefixSelect", "48");
+    await page.click('button:has-text("Go")');
+
+    await page.selectOption("#autoSplitBitsSelect", "8");
+
+    // Custom split to /57 — auto target is /56 (skipped from dropdown)
+    // With 8-bit: intermediate at /56 only, skipping /52
+    // 1 root + 256 /56 + 512 /57 = 769 rows
+    // (4-bit would be /48 → /52 → /56 → /57 = 785 rows)
+    const splitSelect = page.locator(".split-select").first();
+    await splitSelect.selectOption("57");
+    const splitBtn = page.locator(".split-button").first();
+    await splitBtn.click();
+
+    const subnetCells = page.locator(".subnet-cell");
+    await expect(subnetCells).toHaveCount(769);
+
+    // No /52 join button should exist (would appear with 4-bit step)
+    const joinButtons = page.locator(".join-button");
+    const joinTexts = await joinButtons.allTextContents();
+    expect(joinTexts).not.toContain("/52");
+    expect(joinTexts).toContain("/56");
   });
 
   test("should persist 8-bit selection in the shareable URL", async ({

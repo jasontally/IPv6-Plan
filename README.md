@@ -42,7 +42,7 @@ Click green Split buttons to divide subnets into 2-16 children. Click red Join b
 
 Click a green Split button to divide a subnet into smaller networks. By default it splits to the next nibble boundary. Use the dropdown to select a custom target prefix.
 
-**Auto-split step size** is configurable from the green Split column header. Choose **4 bit** (nibble, the default) or **8 bit** (byte) to control how far the Auto option jumps. With 8 bit selected a `/40` auto-splits to `/48` instead of `/44`, a `/48` to `/56`, and a `/56` to `/64`. The chosen step is saved in the shareable URL. Intermediate levels created by custom splits that cross multiple nibble boundaries always use 4-bit nibble boundaries regardless of this setting.
+**Auto-split step size** is configurable from the green Split column header. Choose **4 bit** (nibble, the default) or **8 bit** (byte) to control how far the Auto option jumps. With 8 bit selected a `/40` auto-splits to `/48` instead of `/44`, a `/48` to `/56`, and a `/56` to `/64`. The chosen step is saved in the shareable URL. Intermediate levels created by custom splits that cross multiple boundaries also use the configured step, so join buttons match the split granularity.
 
 **Nibble-aligned splits (default)** create 2-16 children
 
@@ -143,7 +143,7 @@ The IPv6 Subnet Planner is designed to meet WCAG 2.1 Level AA accessibility stan
 
 This ensures all split subnets align on hexadecimal digit boundaries for easy readability while accepting non-aligned initial allocations.
 
-**Splitting (Auto Step Size)** The green Split column header has a selector to switch the Auto step between **4 bit** (nibble, default) and **8 bit** (byte). With 8 bit a `/40` auto-splits to `/48`, a `/48` to `/56`, and a `/56` to `/64` instead of the 4-bit `/44 /52 /60` steps. The selection is persisted in the shareable URL. Intermediate levels for custom splits that cross multiple nibble boundaries continue to use 4-bit nibble boundaries regardless of this setting.
+**Splitting (Auto Step Size)** The green Split column header has a selector to switch the Auto step between **4 bit** (nibble, default) and **8 bit** (byte). With 8 bit a `/40` auto-splits to `/48`, a `/48` to `/56`, and a `/56` to `/64` instead of the 4-bit `/44 /52 /60` steps. The selection is persisted in the shareable URL. Intermediate levels for custom splits also use the configured step, so join buttons match the split granularity.
 
 **Splitting (Custom Target)** Select any target prefix from current+1 to /64 via dropdown. This enables geographical denomination models where administrative layers use non-nibble-aligned prefixes like /34 for zones or /37 for districts while network layer subnets remain nibble-aligned for easier management. Options are limited to creating 1024 or fewer children to prevent performance issues.
 

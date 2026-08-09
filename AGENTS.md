@@ -200,7 +200,7 @@ autoTarget = min(autoTarget, 64)      // capped at /64
 numChildren = 2^(autoTarget - prefix)
 ```
 
-With the default 4-bit step this matches the previous nibble logic (`/20` → `/24`). With 8-bit a `/40` autosplits to `/48`. Intermediate levels still use 4-bit nibble boundaries regardless of the step.
+With the default 4-bit step this matches the previous nibble logic (`/20` → `/24`). With 8-bit a `/40` autosplits to `/48` directly (no `/44` intermediate). Intermediate levels also use the configured step, so join buttons match the split granularity.
 
 **Example child addresses for `/20` split:**
 
@@ -221,7 +221,7 @@ When splitting across multiple nibble boundaries (e.g., `/20 → /28`), the app 
 
 **Key functions:**
 
-- `getNibbleBoundaries(startPrefix, endPrefix)` - Calculate intermediate nibble boundaries (always 4-bit step)
+- `getNibbleBoundaries(startPrefix, endPrefix, step)` - Calculate intermediate boundaries using the configured step (4 or 8 bits)
 - `getAutoSplitTarget(prefix, bits)` - Compute the Auto split target for the configured step (4 or 8 bits), capped at /64
 - `createIntermediateLevel(parentCidr, targetPrefix)` - Create one level of children
 - `createIntermediateLevels(parentCidr, targetPrefix)` - Recursively create all intermediate levels

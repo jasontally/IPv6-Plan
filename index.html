@@ -499,8 +499,8 @@
                 class="auto-split-select"
                 title="Auto split step size"
               >
-                <option value="4">4 bit</option>
-                <option value="8">8 bit</option>
+                <option value="4">4 bit (Nibble)</option>
+                <option value="8">8 bit (Byte)</option>
               </select>
             </th>
             <th
@@ -527,6 +527,10 @@
         <h2>How to Use</h2>
         <p>Enter an IPv6 address and click Go to load.</p>
         <p>Click green Split buttons to divide subnets.</p>
+        <p>
+          Use the 4 bit (Nibble) or 8 bit (Byte) selector in the Split column
+          header to set the auto-split step.
+        </p>
         <p>Click red Join buttons to merge subnets back together.</p>
         <p>Add notes and colors to document allocations.</p>
         <p>Click Share to copy the URL with current state.</p>
@@ -535,8 +539,8 @@
         <p><strong>Why use this tool</strong></p>
         <ul>
           <li>
-            <strong>Nibble-aligned splitting</strong> divides networks at 4-bit
-            boundaries for easy hexadecimal management
+            <strong>Configurable splitting</strong> divide networks at 4-bit
+            (Nibble) or 8-bit (Byte) boundaries for easy hexadecimal management
           </li>
           <li>
             <strong>Custom split targets</strong> support geographical

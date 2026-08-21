@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("URL Sharing", () => {
   test.beforeEach(async ({ page }) => {
@@ -28,7 +29,13 @@ test.describe("URL Sharing", () => {
 
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
+
+    // The share action shows an alert; stub it before clicking so no native
+    // dialog opens (avoids dialog/teardown races in headless runs).
+    await page.evaluate(() => {
+      window.alert = () => {};
+    });
 
     // Click share button
     const shareBtn = page.locator('button:has-text("Share")');
@@ -42,7 +49,7 @@ test.describe("URL Sharing", () => {
   test("should update URL hash when state changes", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Get current URL
     const url = page.url();
@@ -72,7 +79,7 @@ test.describe("CSV Export", () => {
   test("should export subnet plan to CSV", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Setup download handler
     const downloadPromise = page.waitForEvent("download");
@@ -105,7 +112,7 @@ test.describe("CSV Export", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Add a note
     await page.fill(".note-input", "Test subnet");
@@ -128,7 +135,7 @@ test.describe("CSV Export", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split to create hierarchy
     const splitBtn = page.locator(".split-button").first();
@@ -162,7 +169,7 @@ test.describe("Deflate-Raw Compression", () => {
     // Load and split a network to create state
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split root to create tree
     await page.click(".split-button");
@@ -183,11 +190,13 @@ test.describe("Deflate-Raw Compression", () => {
     // Create state with note and color
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
-    // Add a note to verify it persists
+    // Add a note to verify it persists; wait until the hash re-encodes so the
+    // captured URL actually contains the note.
+    const urlBeforeNote = page.url();
     await page.fill(".note-input", "Test Network Note");
-    await page.waitForTimeout(100);
+    await expect.poll(() => page.url()).not.toBe(urlBeforeNote);
 
     // Get the current URL with compressed state
     const url = page.url();
@@ -249,7 +258,7 @@ test.describe("Deflate-Raw Compression", () => {
     // Load a network
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split to create a larger tree (16 children)
     await page.click(".split-button");
@@ -290,7 +299,7 @@ test.describe("Deflate-Raw Compression", () => {
     // Create first state
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
     await page.waitForTimeout(100);
 
     const firstUrl = page.url();

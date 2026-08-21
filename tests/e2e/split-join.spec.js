@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Split and Join Operations", () => {
   test.beforeEach(async ({ page }) => {
@@ -14,7 +15,7 @@ test.describe("Split and Join Operations", () => {
   test("should load network and display root subnet", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Should show root subnet in table
     const subnetCell = page.locator(".subnet-cell").first();
@@ -24,7 +25,7 @@ test.describe("Split and Join Operations", () => {
   test("should split /21 into 8 /24 subnets", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "21");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
@@ -37,7 +38,7 @@ test.describe("Split and Join Operations", () => {
   test("should split /22 into 4 /24 subnets", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "22");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
@@ -50,7 +51,7 @@ test.describe("Split and Join Operations", () => {
   test("should join subnets back to parent", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split first
     const splitBtn = page.locator(".split-button").first();
@@ -69,7 +70,7 @@ test.describe("Split and Join Operations", () => {
   test("should disable split button for /64", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "64");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitBtn = page.locator(".split-button").first();
     await expect(splitBtn).toBeDisabled();
@@ -80,7 +81,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const containsCell = page.locator(".contains-cell").first();
     await expect(containsCell).toHaveText(/\/48s/);
@@ -91,7 +92,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "48");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const containsCell = page.locator(".contains-cell").first();
     await expect(containsCell).toHaveText(/\/64s/);
@@ -100,7 +101,7 @@ test.describe("Split and Join Operations", () => {
   test('should show "Host Subnet" for /64', async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "64");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const containsCell = page.locator(".contains-cell").first();
     await expect(containsCell).toHaveText("Host Subnet");
@@ -109,7 +110,7 @@ test.describe("Split and Join Operations", () => {
   test("should allow adding notes to subnets", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const noteInput = page.locator(".note-input").first();
     await noteInput.fill("Test note for this subnet");
@@ -122,7 +123,7 @@ test.describe("Split and Join Operations", () => {
   test("should color code subnets", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Verify color button exists and is clickable
     const colorBtn = page.locator(".color-button").first();
@@ -140,7 +141,7 @@ test.describe("Split and Join Operations", () => {
   test("should show error for invalid IPv6 address", async ({ page }) => {
     await page.fill("#networkInput", "invalid-address");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toHaveText("Invalid IPv6 address");
@@ -151,7 +152,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("34");
@@ -172,7 +173,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("35");
@@ -193,7 +194,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
 
@@ -216,7 +217,7 @@ test.describe("Split and Join Operations", () => {
   test("should show 'Auto' option as bold and default", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
 
@@ -233,7 +234,7 @@ test.describe("Split and Join Operations", () => {
   test("should enforce 1024 child limit in UI options", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
 
@@ -254,7 +255,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("25");
@@ -269,7 +270,7 @@ test.describe("Split and Join Operations", () => {
   test("should split /48 into 16 /52 subnets", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "48");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
 
@@ -291,7 +292,7 @@ test.describe("Split and Join Operations", () => {
   test("should disable split select for /64", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "64");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await expect(splitSelect).toBeDisabled();
@@ -302,7 +303,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split the root
     const splitBtn = page.locator(".split-button").first();
@@ -318,7 +319,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("34");
@@ -341,7 +342,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("35");
@@ -362,7 +363,7 @@ test.describe("Split and Join Operations", () => {
   test("should allow join after custom split", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("34");
@@ -394,7 +395,7 @@ test.describe("Split and Join Operations", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "21");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
     await splitSelect.selectOption("31");
@@ -411,7 +412,7 @@ test.describe("Split and Join Operations", () => {
     test("splits /20 to /28 showing /24 intermediates", async ({ page }) => {
       await page.fill("#networkInput", "3fff::");
       await page.selectOption("#prefixSelect", "20");
-      await page.click('button:has-text("Go")');
+      await submitGo(page);
 
       // Set note and color on /20
       const rootNote = page.locator(".note-input").first();
@@ -442,7 +443,7 @@ test.describe("Split and Join Operations", () => {
     test("splits /20 to /25 showing /24 intermediates", async ({ page }) => {
       await page.fill("#networkInput", "3fff::");
       await page.selectOption("#prefixSelect", "20");
-      await page.click('button:has-text("Go")');
+      await submitGo(page);
 
       // Split to /25
       const splitSelect = page.locator(".split-select").first();
@@ -467,7 +468,7 @@ test.describe("Split and Join Operations", () => {
     }) => {
       await page.fill("#networkInput", "3fff::");
       await page.selectOption("#prefixSelect", "20");
-      await page.click('button:has-text("Go")');
+      await submitGo(page);
 
       // Split to /30
       const splitSelect = page.locator(".split-select").first();
@@ -492,7 +493,7 @@ test.describe("Split and Join Operations", () => {
     test("prevents split on already-split subnet", async ({ page }) => {
       await page.fill("#networkInput", "3fff::");
       await page.selectOption("#prefixSelect", "20");
-      await page.click('button:has-text("Go")');
+      await submitGo(page);
 
       // Split to /24
       const splitBtn1 = page.locator(".split-button").first();

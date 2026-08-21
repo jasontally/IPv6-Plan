@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Accessibility (a11y)", () => {
   test.beforeEach(async ({ page }) => {
@@ -28,14 +29,14 @@ test.describe("Accessibility (a11y)", () => {
 
   test("should have descriptive page title", async ({ page }) => {
     await expect(page).toHaveTitle(
-      "IPv6 Network Planning Tool | Subnet Planner & Calculator",
+      "IPv6 Subnet Planner & Calculator | Network Planning Tool",
     );
   });
 
   test("should have proper heading hierarchy", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Check for headings in documentation section
     const h2s = page.locator(".footer h2");
@@ -57,7 +58,7 @@ test.describe("Accessibility (a11y)", () => {
   test("should have accessible table structure", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const table = page.locator("#subnetTable");
     await expect(table).toBeVisible();
@@ -72,7 +73,7 @@ test.describe("Accessibility (a11y)", () => {
   test("should have proper table headers", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const headers = page.locator("#subnetTable th");
     const headerTexts = await headers.allTextContents();
@@ -93,7 +94,7 @@ test.describe("Accessibility (a11y)", () => {
   test("buttons should have accessible labels", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Go button
     const goBtn = page.locator('button:has-text("Go")');
@@ -115,7 +116,7 @@ test.describe("Accessibility (a11y)", () => {
   test("should have proper color contrast for text", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const input = page.locator("#networkInput");
     const styles = await input.evaluate((el) => {
@@ -151,7 +152,7 @@ test.describe("Accessibility (a11y)", () => {
   test("should be keyboard navigable", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Tab through inputs
     await page.keyboard.press("Tab");
@@ -192,7 +193,7 @@ test.describe("Accessibility (a11y)", () => {
 
     // Trigger error
     await page.fill("#networkInput", "invalid");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await expect(errorDiv).toBeVisible();
     await expect(errorDiv).toHaveText(/Invalid/);
@@ -206,7 +207,7 @@ test.describe("Accessibility (a11y)", () => {
 
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const table = page.locator("#subnetTable");
     await expect(table).toBeVisible();
@@ -218,7 +219,7 @@ test.describe("Accessibility (a11y)", () => {
   test("split select should be focusable via keyboard", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitSelect = page.locator(".split-select").first();
 
@@ -230,7 +231,7 @@ test.describe("Accessibility (a11y)", () => {
   test("disabled buttons should indicate disabled state", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "64");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitBtn = page.locator(".split-button").first();
     await expect(splitBtn).toBeDisabled();

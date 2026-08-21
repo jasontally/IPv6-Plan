@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Color Picker", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,7 +17,7 @@ test.describe("Color Picker", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const colorBtn = page.locator(".color-button").first();
     await colorBtn.click();
@@ -38,7 +39,7 @@ test.describe("Color Picker", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const colorBtn = page.locator(".color-button").first();
     await colorBtn.click();
@@ -66,7 +67,7 @@ test.describe("Color Picker", () => {
   test("should clear color when clicking Clear button", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const colorBtn = page.locator(".color-button").first();
     await colorBtn.click();
@@ -104,7 +105,7 @@ test.describe("Color Picker", () => {
   test("should close picker when clicking outside", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const colorBtn = page.locator(".color-button").first();
     await colorBtn.click();
@@ -123,7 +124,7 @@ test.describe("Color Picker", () => {
   test("should close picker when clicking a color option", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const colorBtn = page.locator(".color-button").first();
     await colorBtn.click();
@@ -144,7 +145,7 @@ test.describe("Color Picker", () => {
   test.skip("should only show one picker at a time", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Open picker for first row
     const colorBtn1 = page.locator(".color-button").first();
@@ -168,7 +169,7 @@ test.describe("Color Picker", () => {
   test("should handle multiple color selections", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Set first row to pink
     const colorBtn1 = page.locator(".color-button").first();

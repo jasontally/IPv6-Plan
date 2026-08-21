@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   test.beforeEach(async ({ page }) => {
@@ -14,7 +15,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   test("should default to 4-bit (nibble) auto step", async ({ page }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "40");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const autoSplitSelect = page.locator("#autoSplitBitsSelect");
     await expect(autoSplitSelect).toHaveValue("4");
@@ -30,7 +31,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "40");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await page.selectOption("#autoSplitBitsSelect", "8");
 
@@ -45,7 +46,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "20");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await page.selectOption("#autoSplitBitsSelect", "8");
 
@@ -68,7 +69,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "40");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await page.selectOption("#autoSplitBitsSelect", "8");
 
@@ -91,7 +92,7 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "48");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await page.selectOption("#autoSplitBitsSelect", "8");
 
@@ -119,9 +120,14 @@ test.describe("Auto-split step selector (4-bit vs 8-bit)", () => {
   }) => {
     await page.fill("#networkInput", "3fff::");
     await page.selectOption("#prefixSelect", "40");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await page.selectOption("#autoSplitBitsSelect", "8");
+
+    // Wait until the selection has been encoded into the URL hash;
+    // reloading earlier would restore the previous (4-bit) state.
+    const urlBeforeSelection = page.url();
+    await expect.poll(() => page.url()).not.toBe(urlBeforeSelection);
 
     // Reload the page; state (including autoSplitBits) is restored from hash
     await page.reload();

@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Error Scenarios", () => {
   test.beforeEach(async ({ page }) => {
@@ -15,7 +16,7 @@ test.describe("Error Scenarios", () => {
 
   test("should show error for empty IPv6 address", async ({ page }) => {
     await page.fill("#networkInput", "");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toHaveText("Please enter an IPv6 address");
@@ -25,7 +26,7 @@ test.describe("Error Scenarios", () => {
     page,
   }) => {
     await page.fill("#networkInput", "2001:::db8::1");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toBeVisible();
@@ -36,7 +37,7 @@ test.describe("Error Scenarios", () => {
     page,
   }) => {
     await page.fill("#networkInput", "2001:gggg::1");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toBeVisible();
@@ -50,14 +51,14 @@ test.describe("Error Scenarios", () => {
   test("should clear error when valid input provided", async ({ page }) => {
     // First show error
     await page.fill("#networkInput", "");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     let errorDiv = page.locator("#error");
     await expect(errorDiv).toBeVisible();
 
     // Then provide valid input
     await page.fill("#networkInput", "2001:db8::");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     await expect(errorDiv).not.toBeVisible();
   });
@@ -65,7 +66,7 @@ test.describe("Error Scenarios", () => {
   test("should handle very long notes", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const noteInput = page.locator(".note-input").first();
     const longNote = "A".repeat(1000);
@@ -77,7 +78,7 @@ test.describe("Error Scenarios", () => {
   test("should handle special characters in notes", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const noteInput = page.locator(".note-input").first();
     const specialChars = 'Test with "quotes", <brackets>, and {braces}';
@@ -89,12 +90,12 @@ test.describe("Error Scenarios", () => {
   test("should handle rapid button clicks", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Rapidly click Go multiple times
-    await page.click('button:has-text("Go")');
-    await page.click('button:has-text("Go")');
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
+    await submitGo(page);
+    await submitGo(page);
 
     // Should still show network
     const subnetCell = page.locator(".subnet-cell").first();
@@ -104,7 +105,7 @@ test.describe("Error Scenarios", () => {
   test("should handle whitespace in network input", async ({ page }) => {
     await page.fill("#networkInput", "  2001:db8::  ");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const subnetCell = page.locator(".subnet-cell").first();
     await expect(subnetCell).toHaveText("2001:db8::/32");
@@ -113,7 +114,7 @@ test.describe("Error Scenarios", () => {
   test("should handle mixed case IPv6 addresses", async ({ page }) => {
     await page.fill("#networkInput", "2001:DB8::1");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const subnetCell = page.locator(".subnet-cell").first();
     await expect(subnetCell).toHaveText("2001:db8::/32");
@@ -122,7 +123,7 @@ test.describe("Error Scenarios", () => {
   test("should prevent split when already split", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const splitBtn = page.locator(".split-button").first();
     await splitBtn.click();
@@ -134,7 +135,7 @@ test.describe("Error Scenarios", () => {
   test("should handle multiple join operations", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split
     const splitBtn = page.locator(".split-button").first();
@@ -154,7 +155,7 @@ test.describe("Error Scenarios", () => {
   test("should have color button that is clickable", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Wait for the table to be rendered with color buttons
     const colorBtn = page.locator(".color-button").first();
@@ -192,7 +193,7 @@ test.describe("Error Scenarios", () => {
     // Load a network first (Share copies current URL with state)
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Set up dialog handler before clicking Share
     let alertMessage = "";
@@ -214,7 +215,7 @@ test.describe("Error Scenarios", () => {
   test("should handle CSV export with no notes", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const downloadPromise = page.waitForEvent("download");
     const exportBtn = page.locator('button:has-text("Export CSV")');
@@ -232,7 +233,7 @@ test.describe("Error Scenarios", () => {
 
   test("should handle special characters in network", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::%1234");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const errorDiv = page.locator("#error");
     await expect(errorDiv).toContainText("Invalid IPv6 address");

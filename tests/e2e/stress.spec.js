@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { submitGo } from "./helpers";
 
 test.describe("Stress Testing - Large Subnet Trees", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,7 +17,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle deep tree (5 levels)", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split root
     const splitBtn = page.locator(".split-button").first();
@@ -53,7 +54,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle wide tree (16 siblings)", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split root to create 16 children (using nibble-aligned /36 split via "auto")
     // Note: /36 is the nibble-aligned default for /32, so it's the "auto" option
@@ -72,7 +73,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle many notes across tree", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split to create multiple subnets
     const splitSelect = page.locator(".split-select").first();
@@ -102,7 +103,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle multiple color assignments", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Split to create subnets
     const splitSelect = page.locator(".split-select").first();
@@ -135,7 +136,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle rapid split and join operations", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Rapidly split and join
     for (let i = 0; i < 3; i++) {
@@ -156,7 +157,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle custom split with many children", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Create 512 children using /41 split (32 to 41 = 9 bits = 512)
     // With intermediate /36 and /40: 1 root + 16 /36 + 256 /40 + 512 /41 = 785 rows
@@ -176,7 +177,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
     // Create a complex tree structure
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Add multiple levels and notes
     const splitSelect = page.locator(".split-select").first();
@@ -210,7 +211,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle CSV export with large tree", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Create a moderately large tree (16 children via nibble-aligned /36 split)
     // Note: /36 is the "auto" option for /32 prefix
@@ -239,7 +240,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle note updates without losing focus", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const noteInput = page.locator(".note-input").first();
 
@@ -256,7 +257,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   test("should handle color changes without losing notes", async ({ page }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     const noteInput = page.locator(".note-input").first();
     await noteInput.fill("Important subnet");
@@ -280,7 +281,7 @@ test.describe("Stress Testing - Large Subnet Trees", () => {
   }) => {
     await page.fill("#networkInput", "2001:db8::");
     await page.selectOption("#prefixSelect", "32");
-    await page.click('button:has-text("Go")');
+    await submitGo(page);
 
     // Get URL
     const url = page.url();

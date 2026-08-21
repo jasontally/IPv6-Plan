@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Color Picker", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
   });
 
   test("should open color picker when clicking color button", async ({
@@ -56,13 +56,11 @@ test.describe("Color Picker", () => {
 
     // First row should be colored
     const firstRow = page.locator("tbody > tr").first();
-    const bgColor = await firstRow.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-
-    // Background color should be one of our palette colors
+    // Background color should be one of our palette colors.
+    // Use a web-first assertion: setColor() is async (state compression),
+    // so the re-render may land shortly after the click.
     const PINK = "rgb(255, 229, 229)";
-    expect(bgColor).toBe(PINK);
+    await expect(firstRow).toHaveCSS("background-color", PINK);
   });
 
   test("should clear color when clicking Clear button", async ({ page }) => {
@@ -96,12 +94,11 @@ test.describe("Color Picker", () => {
     // Picker should close
     await expect(picker).not.toBeVisible();
 
-    // Row color should be cleared (white/transparent)
+    // Row color should be cleared (white/transparent).
+    // Web-first assertion: setColor() is async (state compression),
+    // so the re-render may land shortly after the click.
     firstRow = page.locator("tbody > tr").first();
-    bgColor = await firstRow.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    expect(bgColor).toBe("rgba(0, 0, 0, 0)");
+    await expect(firstRow).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   });
 
   test("should close picker when clicking outside", async ({ page }) => {
@@ -189,13 +186,12 @@ test.describe("Color Picker", () => {
     await colorOptions.nth(1).waitFor({ state: "attached" });
     await colorOptions.nth(1).click();
 
-    // Verify the first row background changed to blue
+    // Verify the first row background changed to blue.
+    // Web-first assertion: setColor() is async (state compression),
+    // so the re-render may land shortly after the click.
     const firstRow = page.locator("tbody > tr").first();
-    const bgColor = await firstRow.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
 
     const SKY_BLUE = "rgb(229, 243, 255)";
-    expect(bgColor).toBe(SKY_BLUE);
+    await expect(firstRow).toHaveCSS("background-color", SKY_BLUE);
   });
 });
